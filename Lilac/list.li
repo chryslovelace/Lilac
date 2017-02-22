@@ -1,0 +1,13 @@
+﻿let foreach proc list =
+	let iter i =
+		if i = list.length 
+		then () 
+		else
+			proc (list.at i)
+			iter (i + 1)
+	iter 0
+
+let map proc list =
+	let out = []
+	foreach (lambda i = out.add! (proc i)) list
+	out

@@ -1,0 +1,32 @@
+﻿let ref current-x = 0
+let ref current-y = 0
+
+set! current-x = 3
+set! current-y = 4
+
+let x = current-x
+let y = current-y
+
+let equals-3? x = x = 3
+let equals-4? x = x = 4
+
+if equals-3? x and equals-4? y then	
+	println "we're here"
+else 
+	println "keep lookin'"
+
+let is-even? x = x % 2 = 0
+
+let operator >> f g x = g (f x)
+
+(is-even? >> println) x
+
+let print-3() = println 3
+
+print-3()
+
+namespace a =
+	namespace b =
+		let c = 123
+
+println a.b.c
