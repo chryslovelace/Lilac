@@ -157,6 +157,13 @@ namespace Lilac.Values
             return Boolean.Get(number?.IsNativeInt == true);
         }
 
+        [BuiltInFunction("print", typeof(Func<Value, Unit>))]
+        public static Unit Print(Value value)
+        {
+            Console.Write(value);
+            return Unit.Value;
+        }
+
         [BuiltInFunction("println", typeof(Func<Value, Unit>))]
         public static Unit PrintLn(Value value)
         {

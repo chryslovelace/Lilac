@@ -1,0 +1,37 @@
+open "list.li"
+
+let for upto perform = 
+    let iter i =
+        if i < upto then
+            perform i
+            iter (i + 1)
+    iter 0
+
+let create-line old =
+    let line = []
+    let final = old.length - 1
+    for old.length lambda i =
+        let here = old.at i
+        let before = old.at (if i = 0 then final else i - 1)
+        let after = old.at (if i = final then 0 else i + 1)
+        line.add! ((here and before and after) or not (here or before or after))
+    line
+
+let print-line line = 
+    foreach (lambda i = if i then print "*" else print " ") line
+    println ""
+
+let repeat-with old =
+    print-line old
+    let new = create-line old
+    new
+
+let ref current-line = []
+let ref next = 1
+
+for 80 lambda i =
+    current-line.add! (i != next)
+    if i = next then set! next = next * 2
+
+for 30 lambda _ =
+	set! current-line = repeat-with current-line

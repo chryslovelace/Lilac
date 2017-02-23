@@ -129,6 +129,9 @@
     <Compile Include="Values\Value.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="135.li">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="App.config" />
     <None Include="list.li">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
