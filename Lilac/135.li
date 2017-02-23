@@ -21,11 +21,6 @@ let print-line line =
     foreach (lambda i = if i then print "*" else print " ") line
     println ""
 
-let repeat-with old =
-    print-line old
-    let new = create-line old
-    new
-
 let ref current-line = []
 let ref next = 1
 
@@ -34,4 +29,5 @@ for 80 lambda i =
     if i = next then set! next = next * 2
 
 for 30 lambda _ =
-	set! current-line = repeat-with current-line
+	print-line current-line
+	set! current-line = create-line current-line
