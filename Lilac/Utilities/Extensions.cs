@@ -55,5 +55,7 @@ namespace Lilac.Utilities
             }
             return ints;
         }
+
+        public static bool In<T>(this T elem, IEnumerable<T> collection) => collection.Contains(elem);
     }
 }

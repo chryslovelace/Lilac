@@ -6,13 +6,13 @@ using Lilac.Exceptions;
 
 namespace Lilac.Parser
 {
-    public class Lexer
+    public class Lexer : ILexer
     {
-        public List<TokenDefinition> TokenDefinitions { get; }
+        private List<TokenDefinition> TokenDefinitions { get; }
 
-        public Lexer(IEnumerable<TokenDefinition> definitions)
+        public Lexer(ITokenDefiner tokenDefiner)
         {
-            TokenDefinitions = definitions.OrderBy(def => def.Priority).ToList();
+            TokenDefinitions = tokenDefiner.GetTokenDefinitions().OrderBy(def => def.Priority).ToList();
             TabWidth = 4;
         }
 

@@ -15,9 +15,9 @@ namespace Lilac.Interpreter
         private Stack<Scope> Scopes { get; set; }
         public Scope CurrentScope => Scopes.Peek();
 
-        public Evaluator(Scope topLevelScope)
+        public Evaluator(IScopeDefiner scopeDefiner)
         {
-            ResetScope(topLevelScope);
+            ResetScope(scopeDefiner.GetScope());
         }
         
         public void ResetScope(Scope scope)
@@ -209,6 +209,14 @@ namespace Lilac.Interpreter
                     ? VisitLinkedList(new LinkedListExpression {Expressions = group.Expressions})
                     : e.Accept(this);
             }).ToList());
+        }
+
+        public Value VisitError(ErrorExpression errorExpression)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(errorExpression);
+            Console.ForegroundColor = ConsoleColor.White;
+            return Unit.Value;
         }
 
         private Value Call(Value callable, Value argument)

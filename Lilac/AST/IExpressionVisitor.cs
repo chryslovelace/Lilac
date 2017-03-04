@@ -26,5 +26,6 @@ namespace Lilac.AST
         T VisitList(ListExpression list);
         T VisitLambda(LambdaExpression lambdaExpression);
         T VisitLinkedList(LinkedListExpression linkedListExpression);
+        T VisitError(ErrorExpression errorExpression);
     }
 }

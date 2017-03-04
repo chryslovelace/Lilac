@@ -339,6 +339,18 @@ namespace Lilac.Parser
                 select Tuple.Create(state.NextToken($"Parsed {token}"), new EmptyExpression()))
                 .OnFailure($"Expected newline, got {state.GetToken()}.", state);
 
+        public static Parser<Token> NonDelimiter()
+            => state => (
+                from token in state.GetToken()
+                where
+                    !token.TokenType.In(new[]
+                    {
+                        TokenType.Newline, TokenType.OpenGroup, TokenType.OpenList, TokenType.CloseGroup,
+                        TokenType.CloseList
+                    })
+                select Tuple.Create(state.NextToken($"Parsed {token}"), token))
+                .OnFailure($"Expected newline, got {state.GetToken()}.", state);
+
         public static Parser<EmptyExpression> EmptyGroup()
             => state => (
                 from open in state.GetToken()
@@ -390,6 +402,10 @@ namespace Lilac.Parser
                 .Or(OperatorFunction())
                 .Or(Lambda())
                 .PostfixExpression();
+
+        public static Parser<ErrorExpression> Error() =>
+            from tokens in NonDelimiter().Star()
+            select new ErrorExpression {ErrorTokens = tokens};
         
         public static Parser<IdentifierExpression> Identifier() =>
             from id in Id()
@@ -425,21 +441,22 @@ namespace Lilac.Parser
 
         public static Parser<GroupExpression> Group() =>
             from groupType in GroupOpen()
-            //.Or<GroupType>(
-            //    from nl in Newline()
-            //    from groupType in GroupOpen(GroupType.Indented)
-            //    select groupType)
             from nls1 in Newline().Star()
             from pushScope in PushContext()
-            from exprs in Expression().Or<Expression>(Definition()).StarSep(Newline().Plus())
+            from exprs in Lines()
             from popScope in PopContext()
             from nls2 in Newline().Star()
             from close in GroupClose(groupType)
             select new GroupExpression {Expressions = exprs, GroupType = groupType};
 
+        private static Parser<List<Expression>> Lines()
+        {
+            return Expression().Or<Expression, Expression>(Definition()).StarSep(Newline().Plus());
+        }
+
         public static Parser<TopLevelExpression> TopLevel() =>
             from open in GroupOpen(GroupType.TopLevel)
-            from exprs in Expression().Or<Expression>(Definition()).StarSep(Newline().Plus())
+            from exprs in Lines()
             from nls in Newline().Star()
             from close in GroupClose(GroupType.TopLevel)
             select new TopLevelExpression {Expressions = exprs, GroupType = GroupType.TopLevel};
