@@ -165,7 +165,7 @@ namespace Lilac.Parser
             Func<T, bool> predicate) =>
                 from l in leading.Opt()
                 from t in parser
-                where predicate(t) || l is Nothing<TLeading>
+                where predicate(t) || (l is Nothing<TLeading>)
                 select t;
 
         public static Parser<T> WithOptLeading<T, TLeading>(this Parser<T> parser, Parser<TLeading> leading) =>
