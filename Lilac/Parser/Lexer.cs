@@ -62,18 +62,16 @@ namespace Lilac.Parser
         {
             ++Line;
 
-            var tokens = GetLineTokens(line);
-
-            if (!tokens.Any()) yield break;
+            if (string.IsNullOrWhiteSpace(line)) yield break;
 
             foreach (var token in GetIndentationTokens(line)) yield return token;
 
-            foreach (var token in tokens) yield return token;
+            foreach (var token in GetLineTokens(line)) yield return token;
 
             yield return NewToken(TokenType.Newline, string.Empty);
         }
 
-        private List<Token> GetLineTokens(string line)
+        private IEnumerable<Token> GetLineTokens(string line)
         {
             return GetRegexMatches(line).Select(match =>
                 new
@@ -83,8 +81,7 @@ namespace Lilac.Parser
                     Column = Indentations.Peek() + match.Index
                 })
                 .Where(match => !match.Definition.IsIgnored)
-                .Select(match => NewToken(match.Definition.TokenType, match.Value, match.Column))
-                .ToList();
+                .Select(match => NewToken(match.Definition.TokenType, match.Value, match.Column));
         }
 
         private TokenDefinition GetTokenDefinition(Match match)
