@@ -1,14 +1,9 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using Lilac.AST;
-using Lilac.AST.Definitions;
-using Lilac.AST.Expressions;
 using Lilac.Attributes;
 using Lilac.Parser;
 using Lilac.Values;
-using String = Lilac.Values.String;
 
 namespace Lilac.Interpreter
 {

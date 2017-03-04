@@ -66,23 +66,19 @@ namespace Lilac.Parser
 
             foreach (var token in GetIndentationTokens(line)) yield return token;
 
-            foreach (var token in GetLineTokens(line)) yield return token;
+            var trimmed = line.Trim();
 
-            yield return NewToken(TokenType.Newline, string.Empty);
+            foreach (var token in GetLineTokens(trimmed)) yield return token;
+
+            yield return NewToken(TokenType.Newline, string.Empty, trimmed.Length + Indentations.Peek());
         }
 
-        private IEnumerable<Token> GetLineTokens(string line)
-        {
-            return GetRegexMatches(line).Select(match =>
-                new
-                {
-                    match.Value,
-                    Definition = GetTokenDefinition(match),
-                    Column = Indentations.Peek() + match.Index
-                })
-                .Where(match => !match.Definition.IsIgnored)
-                .Select(match => NewToken(match.Definition.TokenType, match.Value, match.Column));
-        }
+        private IEnumerable<Token> GetLineTokens(string line) =>
+            from Match match in Regex.Matches(line)
+            let definition = GetTokenDefinition(match)
+            where !definition.IsIgnored
+            let column = Indentations.Peek() + match.Index
+            select NewToken(definition.TokenType, match.Value, column);
 
         private TokenDefinition GetTokenDefinition(Match match)
         {
@@ -93,16 +89,9 @@ namespace Lilac.Parser
             return TokenDefinitions.Find(definition => match.Groups[definition.TokenType.ToString()].Success);
         }
 
-        private IEnumerable<Match> GetRegexMatches(string line)
-        {
-            return Regex.Matches(line.TrimStart(GetLeadingWhitespace(line)))
-                .Cast<Match>();
-        }
-
         private IEnumerable<Token> GetIndentationTokens(string line)
         {
-            var whitespace = GetLeadingWhitespace(line);
-            var indent = GetIndentationLevel(whitespace);
+            var indent = line.TakeWhile(char.IsWhiteSpace).Sum(c => c == '\t' ? TabWidth : 1);
             var currentIndent = Indentations.Peek();
 
             if (indent == currentIndent) yield break;
@@ -121,24 +110,6 @@ namespace Lilac.Parser
                     yield return NewToken(TokenType.Newline, string.Empty);
                 }
             }
-        }
-
-        private static char[] GetLeadingWhitespace(string line)
-        {
-            return line.TakeWhile(char.IsWhiteSpace).ToArray();
-        }
-
-        private int GetIndentationLevel(IEnumerable<char> whitespace)
-        {
-            return whitespace.Sum(c =>
-            {
-                switch (c)
-                {
-                    case '\t': return TabWidth;
-                    case ' ': return 1;
-                    default: return 0;
-                }
-            });
         }
     }
 }

@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Lilac.Parser;
-using Lilac.Values;
 
 namespace Lilac.AST.Expressions
 {
