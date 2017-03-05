@@ -70,16 +70,15 @@ namespace Lilac.Parser
 
         private IEnumerable<Token> TokenizeLine(string line)
         {
-            if (string.IsNullOrWhiteSpace(line))
-                yield break;
+            var trimmed = line.Trim();
+            var lineTokens = GetLineTokens(trimmed).ToList();
+            if (!lineTokens.Any()) yield break;
 
             foreach (var token in GetIndentationTokens(line))
                 yield return token;
 
-            var trimmed = line.Trim();
-
-            foreach (var token in GetLineTokens(trimmed))
-                yield return token;
+            foreach (var token in lineTokens)
+                yield return NewToken(token.TokenType, token.Content, token.Column + Indentations.Peek());
 
             yield return NewToken(TokenType.Newline, string.Empty, trimmed.Length + Indentations.Peek());
         }
@@ -88,7 +87,7 @@ namespace Lilac.Parser
             from Match match in Regex.Matches(line)
             let definition = GetTokenDefinition(match)
             where !definition.IsIgnored
-            let column = Indentations.Peek() + match.Index
+            let column = match.Index
             select NewToken(definition.TokenType, match.Value, column);
 
         private TokenDefinition GetTokenDefinition(Match match)
