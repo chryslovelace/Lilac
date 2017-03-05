@@ -123,35 +123,35 @@ namespace Lilac.Values
         }
 
         [BuiltInFunction("complex?", typeof(Func<Value, Boolean>))]
-        public static Boolean IsComplex(Value value)
+        public static Boolean IsComplexNumber(Value value)
         {
             var number = value as Number;
             return Boolean.Get(number?.IsComplex == true);
         }
 
         [BuiltInFunction("real?", typeof(Func<Value, Boolean>))]
-        public static Boolean IsReal(Value value)
+        public static Boolean IsRealNumber(Value value)
         {
             var number = value as Number;
             return Boolean.Get(number?.IsReal == true);
         }
 
         [BuiltInFunction("rational?", typeof(Func<Value, Boolean>))]
-        public static Boolean IsRational(Value value)
+        public static Boolean IsRationalNumber(Value value)
         {
             var number = value as Number;
             return Boolean.Get(number?.IsRational == true);
         }
 
         [BuiltInFunction("integer?", typeof(Func<Value, Boolean>))]
-        public static Boolean IsInteger(Value value)
+        public static Boolean IsIntegerNumber(Value value)
         {
             var number = value as Number;
             return Boolean.Get(number?.IsInteger == true);
         }
 
         [BuiltInFunction("native-int?", typeof(Func<Value, Boolean>))]
-        public static Boolean IsNativeInt(Value value)
+        public static Boolean IsNativeIntNumber(Value value)
         {
             var number = value as Number;
             return Boolean.Get(number?.IsNativeInt == true);

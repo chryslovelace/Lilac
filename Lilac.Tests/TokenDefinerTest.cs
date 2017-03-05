@@ -24,13 +24,14 @@ namespace Lilac.Tests
         {
             var definitions = TokenDefiner.GetTokenDefinitions().ToList();
 
-            definitions.Should().NotBeNullOrEmpty();
-            definitions.Should().NotContainNulls();
-            definitions.All(definition =>
+            definitions.Should()
+                .NotBeNullOrEmpty()
+                .And.NotContainNulls()
+                .And.Contain(definition => !definition.IsIgnored)
+                .And.Subject.All(definition =>
                     Enum.IsDefined(typeof(TokenType), definition.TokenType) &&
                     !string.IsNullOrWhiteSpace(definition.Regex))
                 .Should().BeTrue();
-            definitions.Should().Contain(definition => !definition.IsIgnored);
             foreach (TokenType tokenType in Enum.GetValues(typeof(TokenType)))
             {
                 if (tokenType == TokenType.Unrecognized || tokenType == TokenType.Number) continue;
