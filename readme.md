@@ -78,7 +78,7 @@ Internally, all functions are treated as unary and are automatically curried. Nu
 Lilac is still very bare-bones, and there are a lot of features I would like to add moving forward:
 
 - Support for tail recursion
-- Gradual strong typing
+- Gradual static typing
 - Support for inheritance and polymorphism
 - Explicit support for generic functions
 - User defined classes and interfaces 
