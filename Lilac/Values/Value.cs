@@ -21,6 +21,8 @@ namespace Lilac.Values
             throw new Exception($"Type {GetType().Name.CamelCaseToKebabCase()} is not comparable!");
         }
 
+        public virtual Type GetValueType() => GetType();
+
         #endregion
 
         #region Built In Functions

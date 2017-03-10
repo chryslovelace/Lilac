@@ -25,13 +25,15 @@ namespace Lilac
         private static void SetupContainer()
         {
             Container = new Container();
-
+            
             Container.Register<ITokenDefiner, TokenDefiner>();
             Container.Register<ILexer, Lexer>();
             Container.Register<IContextDefiner, BuiltInDefiner>();
             Container.Register<IParser, MonadicParserWrapper>();
             Container.Register<IScopeDefiner, BuiltInDefiner>();
-            Container.Register<IExpressionVisitor<Value>, Evaluator>();
+            Container.Register<IExpressionConsumer<Value>, Evaluator>();
+            Container.Register<IExpressionConsumer<Type>, TypeDeducer>();
+            Container.RegisterDecorator<IExpressionConsumer<Value>, TypeDeductionDecorator>();
             Container.Register<Interpreter.Interpreter>();
 
             Container.Verify();

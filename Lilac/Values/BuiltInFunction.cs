@@ -23,5 +23,10 @@ namespace Lilac.Values
         {
             return true;
         }
+
+        public override Type GetValueType()
+        {
+            return Method.GetType();
+        }
     }
 }

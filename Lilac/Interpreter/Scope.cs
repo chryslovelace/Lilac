@@ -20,21 +20,15 @@ namespace Lilac.Interpreter
             ParentScope = parent;
         }
 
-        public string ListBindings(string prefix = "")
+        public string ListBindings()
         {
-            var sb = new StringBuilder();
+            return string.Join(Environment.NewLine, GetAllBindings().Select(b => b.Name));
+        }
 
-            foreach (var binding in Bindings)
-            {
-                sb.Append(prefix).Append(binding.Key).AppendLine();
-            }
-
-            foreach (var ns in Namespaces)
-            {
-                sb.Append(ns.Value.ListBindings($"{prefix}{ns.Key}."));
-            }
-
-            return sb.ToString();
+        public IEnumerable<Binding> GetAllBindings(string prefix = "")
+        {
+            return Bindings.Values.Select(b => b.WithPrefix(prefix)).Concat(
+                Namespaces.SelectMany(ns => ns.Value.GetAllBindings(ns.Key)).Select(b => b.WithPrefix(prefix)));
         }
 
         public bool BindingExists(string name) 

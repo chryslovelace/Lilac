@@ -3,6 +3,7 @@ using System.IO;
 using Lilac.AST;
 using Lilac.Attributes;
 using Lilac.Parser;
+using Lilac.Utilities;
 using Lilac.Values;
 
 namespace Lilac.Interpreter
@@ -11,13 +12,13 @@ namespace Lilac.Interpreter
     {
         #region Private Properties
 
-        private  ILexer Lexer { get; }
-        private  IParser Parser { get; }
-        private  IExpressionVisitor<Value> Evaluator { get; }
+        private ILexer Lexer { get; }
+        private IParser Parser { get; }
+        private IExpressionConsumer<Value> Evaluator { get; }
 
         #endregion
 
-        public Interpreter(ILexer lexer, IParser parser, IExpressionVisitor<Value> evaluator)
+        public Interpreter(ILexer lexer, IParser parser, IExpressionConsumer<Value> evaluator)
         {
             Lexer = lexer;
             Parser = parser;
@@ -30,7 +31,7 @@ namespace Lilac.Interpreter
         {
             var tokens = Lexer.Tokenize(text);
             var expr = Parser.Parse(tokens);
-            var value = expr.Accept(Evaluator);
+            var value = Evaluator.Consume(expr);
             return value;
         }
 

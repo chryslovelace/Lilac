@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Lilac.AST.Expressions;
 using Lilac.Interpreter;
 
@@ -34,7 +35,7 @@ namespace Lilac.Values
             Body = lambdaExpression.Body;
             DeclaringScope = declaringScope;
         }
-
+        
         public override string ToString()
         {
             return $"<#function {DeclaringName}:{Parameters.Count}>";

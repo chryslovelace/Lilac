@@ -26,10 +26,10 @@ namespace Lilac.Utilities
             for (var i = 0; i < str.Length; i++)
             {
                 var c = str[i];
-                if (char.IsUpper(c))
+                if (Char.IsUpper(c))
                 {
                     if (i > 0) sb.Append('-');
-                    sb.Append(char.ToLower(c));
+                    sb.Append(Char.ToLower(c));
                 }
                 else
                 {
@@ -41,7 +41,7 @@ namespace Lilac.Utilities
 
         public static string PrettyPrintParameters(this IReadOnlyList<string> parameters)
         {
-            return parameters.Count == 0 ? "()" : string.Join(" ", parameters);
+            return parameters.Count == 0 ? "()" : String.Join(" ", parameters);
         }
 
         public static int[] ToUtf32(this string str)
@@ -56,5 +56,23 @@ namespace Lilac.Utilities
         }
 
         public static bool In<T>(this T elem, IEnumerable<T> collection) => collection.Contains(elem);
+
+        public static Type GetCurriedType(this Type callableType)
+        {
+            var typeArgs = callableType.GenericTypeArguments.Skip(1).ToArray();
+
+            return Type.GetType($"System.Func`{typeArgs.Length}", true).MakeGenericType(typeArgs);
+        }
+
+        public static string LilacTypeName(this Type type)
+        {
+            if (typeof(Delegate).IsAssignableFrom(type))
+            {
+                return type.GenericTypeArguments.Length == 1
+                    ? $"unit -> {type.GenericTypeArguments[0].Name.CamelCaseToKebabCase()}"
+                    : string.Join(" -> ", type.GenericTypeArguments.Select(a => a.Name.CamelCaseToKebabCase()));
+            }
+            return type.Name.CamelCaseToKebabCase();
+        }
     }
 }

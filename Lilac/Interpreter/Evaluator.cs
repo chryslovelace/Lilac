@@ -10,7 +10,7 @@ using String = Lilac.Values.String;
 
 namespace Lilac.Interpreter
 {
-    public class Evaluator : IExpressionVisitor<Value>
+    public class Evaluator : IExpressionVisitor<Value>, IExpressionConsumer<Value>
     {
         private Stack<Scope> Scopes { get; set; }
         public Scope CurrentScope => Scopes.Peek();
@@ -296,6 +296,11 @@ namespace Lilac.Interpreter
         private Value CallFunction(Function function, Value argument)
         {
             return function.Parameters.Count > 1 ? new CurriedFunction(function).Apply(argument) : ExecuteFunction(function, new[] { argument });
+        }
+
+        public Value Consume(Expression expression)
+        {
+            return expression.Accept(this);
         }
     }
 }

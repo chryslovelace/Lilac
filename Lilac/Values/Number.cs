@@ -1129,7 +1129,7 @@ namespace Lilac.Values
             }
         }
 
-        [BuiltInFunction("logb", typeof(Func<Number, Number>), Namespace = "math")]
+        [BuiltInFunction("logb", typeof(Func<Number, Number, Number>), Namespace = "math")]
         public static Number LogB(Number number, Number b)
         {
             number = number.RaiseTo(NumberType.Real);
