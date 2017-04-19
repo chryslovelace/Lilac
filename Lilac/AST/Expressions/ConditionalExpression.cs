@@ -11,11 +11,11 @@ namespace Lilac.AST.Expressions
         public override string ToString()
         {
             var sb = new StringBuilder()
-                .Append("if ").Append(Condition.ToString())
-                .Append(" then ").Append(ThenExpression.ToString());
+                .Append("if ").Append(Condition)
+                .Append(" then ").Append(ThenExpression);
 
             if (ElseExpression != null)
-                sb.Append(" else ").Append(ElseExpression.ToString());
+                sb.Append(" else ").Append(ElseExpression);
 
             return sb.ToString();
         }

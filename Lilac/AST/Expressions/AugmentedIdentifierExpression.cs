@@ -2,7 +2,7 @@
 
 namespace Lilac.AST.Expressions
 {
-    public class NamespacedIdentifierExpression : Expression
+    public class AugmentedIdentifierExpression : Expression
     {
         public override string ToString()
         {

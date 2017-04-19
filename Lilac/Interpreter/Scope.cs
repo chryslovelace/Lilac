@@ -1,21 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Lilac.Values;
 
 namespace Lilac.Interpreter
 {
-    public class Scope
+    public class Scope<T> : IScope<T>
     {
-        public HashSet<Scope> UsedNamespaces { get; } = new HashSet<Scope>();
-        public Dictionary<string, Scope> Namespaces { get; set; } = new Dictionary<string, Scope>();
-        public Dictionary<string, Binding> Bindings { get; set; } = new Dictionary<string, Binding>();
-        public Scope ParentScope { get; set; }
+        public IScope<T> NewChild()
+        {
+            return new Scope<T>(this);
+        }
+        public IScope<T> NewNamespace(List<string> names)
+        {
+            var ns = new Scope<T>(this);
+            AddNamespace(names, ns);
+            return ns;
+        }
+
+        private HashSet<Scope<T>> UsedNamespaces { get; } = new HashSet<Scope<T>>();
+        private Dictionary<string, Scope<T>> Namespaces { get; set; } = new Dictionary<string, Scope<T>>();
+        private Dictionary<string, Binding<T>> Bindings { get; set; } = new Dictionary<string, Binding<T>>();
+        private Scope<T> ParentScope { get; set; }
 
         public Scope(){}
 
-        public Scope(Scope parent)
+        private Scope(Scope<T> parent)
         {
             ParentScope = parent;
         }
@@ -25,7 +35,7 @@ namespace Lilac.Interpreter
             return string.Join(Environment.NewLine, GetAllBindings().Select(b => b.Name));
         }
 
-        public IEnumerable<Binding> GetAllBindings(string prefix = "")
+        private IEnumerable<Binding<T>> GetAllBindings(string prefix = "")
         {
             return Bindings.Values.Select(b => b.WithPrefix(prefix)).Concat(
                 Namespaces.SelectMany(ns => ns.Value.GetAllBindings(ns.Key)).Select(b => b.WithPrefix(prefix)));
@@ -34,18 +44,18 @@ namespace Lilac.Interpreter
         public bool BindingExists(string name) 
             => Bindings.ContainsKey(name) || ParentScope?.BindingExists(name) == true;
 
-        public Value GetValue(string name)
+        public T GetBoundItem(string name)
         {
-            return GetBinding(name).Value;
+            return GetBinding(name).BoundItem;
         }
 
-        private bool TryGetBinding(string name, out Binding binding)
+        private bool TryGetBinding(string name, out Binding<T> binding)
         {
             if (TryGetLocalBinding(name, out binding)) return true;
             return ParentScope?.TryGetBinding(name, out binding) == true;
         }
 
-        private bool TryGetLocalBinding(string name, out Binding binding)
+        private bool TryGetLocalBinding(string name, out Binding<T> binding)
         {
             if (Bindings.TryGetValue(name, out binding)) return true;
             foreach (var ns in UsedNamespaces)
@@ -55,7 +65,7 @@ namespace Lilac.Interpreter
             return false;
         }
 
-        private bool TryGetNamespace(string name, out Scope ns)
+        private bool TryGetNamespace(string name, out Scope<T> ns)
         {
             if (Namespaces.TryGetValue(name, out ns)) return true;
             foreach (var usedNs in UsedNamespaces)
@@ -65,23 +75,27 @@ namespace Lilac.Interpreter
             return ParentScope?.TryGetNamespace(name, out ns) == true;
         }
         
-        public Binding GetBinding(string name)
+        public Binding<T> GetBinding(string name)
         {
-            Binding binding;
+            Binding<T> binding;
             if (!TryGetBinding(name, out binding))
                 throw new Exception($"Binding {name} not found!");
             return binding;
         }
 
-        public Scope GetNamespace(string name)
+        IScope<T> IScope<T>.GetNamespace(string name) => GetNamespace(name);
+
+        public Scope<T> GetNamespace(string name)
         {
-            Scope space;
+            Scope<T> space;
             if (!TryGetNamespace(name, out space))
                 throw new Exception($"Namespace {name} not found!");
             return space;
         }
 
-        public Scope GetNamespace(IList<string> namespaces)
+        IScope<T> IScope<T>.GetNamespace(IList<string> namespaces) => GetNamespace(namespaces);
+
+        public Scope<T> GetNamespace(IList<string> namespaces)
         {
             if (namespaces.Count == 0)
                 return this;
@@ -94,7 +108,7 @@ namespace Lilac.Interpreter
             UsedNamespaces.Add(GetNamespace(namespaces));
         }
 
-        public Binding GetNamespacedBinding(string name, IList<string> namespaces)
+        public Binding<T> GetNamespacedBinding(string name, IList<string> namespaces)
         {
             if (namespaces.Count == 0)
                 return GetBinding(name);
@@ -102,45 +116,45 @@ namespace Lilac.Interpreter
             return space.GetNamespacedBinding(name, namespaces.Skip(1).ToArray());
         }
 
-        public void BindValue(string name, Value value, bool isMutable = false)
+        public void BindItem(string name, T value, bool isMutable = false, OperatorInfo opInfo = null)
         {
             if (Bindings.ContainsKey(name)) throw new Exception($"Local binding {name} already exists!");
-            Bindings[name] = new Binding {Name = name, Value = value, IsMutable = isMutable};
+            Bindings[name] = new Binding<T> { Name = name, BoundItem = value, IsMutable = isMutable, OperatorInfo = opInfo};
         }
 
-        public void BindNamespacedValue(string name, Value value, IList<string> namespaces, bool isMutable = false)
+        public void BindNamespacedItem(string name, T value, IList<string> namespaces, bool isMutable = false, OperatorInfo opInfo = null)
         {
             if (namespaces.Count == 0)
             {
-                BindValue(name, value, isMutable);
+                BindItem(name, value, isMutable, opInfo);
                 return;
             }
-            Scope space;
+            Scope<T> space;
             if (!Namespaces.TryGetValue(namespaces[0], out space))
             {
-                Namespaces[namespaces[0]] = space = new Scope();
+                Namespaces[namespaces[0]] = space = new Scope<T>();
             }
-            space.BindNamespacedValue(name, value, namespaces.Skip(1).ToArray(), isMutable);
+            space.BindNamespacedItem(name, value, namespaces.Skip(1).ToArray(), isMutable, opInfo);
         }
 
-        public void SetValue(string name, Value value)
+        public void SetBoundItem(string name, T value)
         {
             var binding = GetBinding(name);
             if (!binding.IsMutable) throw new Exception($"Binding {name} is not mutable!");
-            binding.Value = value;
+            binding.BoundItem = value;
         }
 
-        public void AddNamespace(List<string> namespaces, Scope ns)
+        public void AddNamespace(List<string> namespaces, Scope<T> ns)
         {
             if (namespaces.Count == 1)
             {
                 Namespaces.Add(namespaces[0], ns);
                 return;
             }
-            Scope space;
+            Scope<T> space;
             if (!Namespaces.TryGetValue(namespaces[0], out space))
             {
-                Namespaces[namespaces[0]] = space = new Scope();
+                Namespaces[namespaces[0]] = space = new Scope<T>();
             }
             space.AddNamespace(namespaces.Skip(1).ToList(), ns);
         }

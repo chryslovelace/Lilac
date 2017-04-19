@@ -19,7 +19,7 @@ namespace Lilac.AST.Expressions
             sb.Append(" precedence ").Append(Precedence);
             sb.Append(" associates ").Append(Association);
             sb.Append(Parameters.PrettyPrintParameters());
-            sb.Append(" = ").Append(Body.ToString());
+            sb.Append(" = ").Append(Body);
             return sb.ToString();
         }
 

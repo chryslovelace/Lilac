@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Lilac.AST;
-using Lilac.AST.Definitions;
 using Lilac.AST.Expressions;
 using Lilac.Exceptions;
 using Lilac.Utilities;
@@ -173,30 +172,6 @@ namespace Lilac.Parser
             from t in parser
             select t;
 
-        public static Parser<EmptyExpression> AddDefinition(Definition definition)
-            => state => Ok(state.AddDefinition(definition), new EmptyExpression());
-
-        public static Parser<EmptyExpression> PushContext()
-            => state => Ok(state.PushContext(), new EmptyExpression());
-
-        public static Parser<Context> PopContext()
-            => state => Ok(state.PopContext(), state.Context);
-
-        public static Parser<EmptyExpression> UseNamespace(IList<string> namespaces)
-            => state => Ok(state.UseNamespace(namespaces), new EmptyExpression());
-
-        public static Parser<bool> IsDefinedNamespace(IList<string> namespaces)
-            => state => Ok(state, state.IsDefinedNamespace(namespaces));
-
-        public static Parser<EmptyExpression> AddNamespace(IList<string> namespaces, Context context)
-            => state => Ok(state.AddNamespace(namespaces, context), new EmptyExpression());
-
-        public static Parser<string[]> TempReserveWords(params string[] words)
-            => state => Ok(state.TempReserveWords(words), words);
-
-        public static Parser<string[]> UnReserveWords(params string[] words)
-            => state => Ok(state.TempReserveWords(words), words);
-
         #endregion
 
         #region Terminals
@@ -204,30 +179,28 @@ namespace Lilac.Parser
         public static Parser<string> Id()
             => state => (
                 from token in state.GetToken()
-                where token.TokenType == TokenType.Identifier && !state.IsDefinedOperator(token.Content) && !state.IsTempReserved(token.Content)
+                where token.TokenType == TokenType.Identifier
                 select Tuple.Create(state.NextToken($"Parsed {token}"), token.Content))
                 .OnFailure($"Expected identifier, got {state.GetToken()}.", state);
 
         public static Parser<string> Id(string name)
             => state => (
                 from token in state.GetToken()
-                where token.TokenType == TokenType.Identifier && token.Content == name && !state.IsDefinedOperator(token.Content)
+                where token.TokenType == TokenType.Identifier && token.Content == name
                 select Tuple.Create(state.NextToken($"Parsed {token}"), token.Content))
                 .OnFailure($"Expected identifier, got {state.GetToken()}.", state);
 
         public static Parser<EmptyExpression> ReservedWord(string name)
             => state => (
                 from token in state.GetToken()
-                where (token.TokenType == TokenType.ReservedWord || state.IsTempReserved(token.Content)) && token.Content == name
+                where token.TokenType == TokenType.ReservedWord && token.Content == name
                 select Tuple.Create(state.NextToken($"Parsed {token}"), new EmptyExpression()))
                 .OnFailure($"Expected '{name}', got {state.GetToken()}.", state);
 
         public static Parser<string> IdNotEquals()
             => state => (
                 from token in state.GetToken()
-                where
-                    token.Content != "=" && token.TokenType == TokenType.Identifier &&
-                    !state.IsDefinedOperator(token.Content)
+                where token.Content != "=" && token.TokenType == TokenType.Identifier
                 select Tuple.Create(state.NextToken($"Parsed {token}"), token.Content))
                 .OnFailure($"Expected identifier, got {state.GetToken()}.", state);
 
@@ -240,7 +213,7 @@ namespace Lilac.Parser
         public static Parser<string> Operator()
             => state => (
                 from token in state.GetToken()
-                where token.TokenType == TokenType.Identifier && state.IsDefinedOperator(token.Content)
+                where token.TokenType == TokenType.Identifier
                 select Tuple.Create(state.NextToken($"Parsed {token}"), token.Content))
                 .OnFailure($"Expected operator, got {state.GetToken()}.", state);
 
@@ -392,7 +365,7 @@ namespace Lilac.Parser
 
         public static Parser<Expression> Expression() =>
             Number()
-                .Or(NamespacedId())
+                .Or(AugmentedId())
                 .Or(Identifier())
                 .Or(Cond())
                 .Or(Group())
@@ -417,10 +390,10 @@ namespace Lilac.Parser
             from close in GroupClose(GroupType.Parenthesized)
             select new OperatorExpression {Name = op};
 
-        public static Parser<FunctionCallExpression> FunctionCall(this Expression function) => 
+        public static Parser<ApplicationExpression> Application(this Expression function) => 
             from argument in Expression()
-            select new FunctionCallExpression {Function = function, Argument = argument};
-
+            select new ApplicationExpression {Function = function, Argument = argument};
+        
         public static Parser<OperatorCallExpression> OperatorCall(this Expression lhs) => 
             from op in Operator()
             from rhs in Expression()
@@ -433,18 +406,15 @@ namespace Lilac.Parser
 
         public static Parser<Expression> PostfixExpression<T>(this Parser<T> parser) where T : Expression =>
             from expr in parser
-            from maybe in expr.OperatorCall()
-                .Or(expr.FunctionCall())
+            from maybe in expr.Application()
                 .Or(expr.MemberAccess())
                 .IfSoContinueWith(just => just.AsParser().PostfixExpression())
-            select maybe.Match(e => e.ResolvePrecedence(), () => expr);
+            select maybe.Match(e => e, () => expr);
 
         public static Parser<GroupExpression> Group() =>
             from groupType in GroupOpen()
             from nls1 in Newline().Star()
-            from pushScope in PushContext()
             from exprs in Lines()
-            from popScope in PopContext()
             from nls2 in Newline().Star()
             from close in GroupClose(groupType)
             select new GroupExpression {Expressions = exprs, GroupType = groupType};
@@ -486,10 +456,7 @@ namespace Lilac.Parser
             from id in Id()
             from args in ArgList()
             from eq in Equals()
-            from pushScope in PushContext()
             from expr in Expression().WithOptLeadingIf(Newline(), exp => exp is GroupExpression)
-            from popScope in PopContext()
-            from addFunction in AddDefinition(new Definition(id))
             select new FunctionDefinitionExpression
             {
                 Name = id,
@@ -498,6 +465,20 @@ namespace Lilac.Parser
             };
 
         public static Parser<OperatorDefinitionExpression> OperatorDef() =>
+            from letId in ReservedWord("let")
+            from opId in ReservedWord("operator")
+            from id in Id()
+            from args in ArgList()
+            from eq in Equals()
+            from expr in Expression().WithOptLeadingIf(Newline(), exp => exp is GroupExpression)
+            select new OperatorDefinitionExpression
+            {
+                Name = id,
+                Parameters = args,
+                Body = expr
+            };
+
+        public static Parser<OperatorDefinitionExpression> OperatorDefWithPrecedence() =>
             from letId in ReservedWord("let")
             from opId in ReservedWord("operator")
             from p in (
@@ -513,10 +494,7 @@ namespace Lilac.Parser
             from id in Id()
             from args in ArgList()
             from eq in Equals()
-            from pushScope in PushContext()
             from expr in Expression().WithOptLeadingIf(Newline(), exp => exp is GroupExpression)
-            from popScope in PopContext()
-            from addOperator in AddDefinition(new OperatorDefinition(id, precedence, association))
             select new OperatorDefinitionExpression
             {
                 Name = id,
@@ -569,17 +547,14 @@ namespace Lilac.Parser
                 ValueExpression = eqExpr.Rhs
             };
 
-    public static Parser<NamespacedIdentifierExpression> NamespacedId() =>
+    public static Parser<AugmentedIdentifierExpression> AugmentedId() =>
             from namespaces in (from id in Id() from dot in Period() select id).Plus()
-            from isDefined in IsDefinedNamespace(namespaces)
-            where isDefined
             from id in Id()
-            select new NamespacedIdentifierExpression { Namespaces = namespaces, Name = id };
+            select new AugmentedIdentifierExpression { Namespaces = namespaces, Name = id };
 
         public static Parser<UsingExpression> Using() =>
             from usingId in ReservedWord("using")
             from namespaces in Id().PlusSep(Period())
-            from use in UseNamespace(namespaces)
             select new UsingExpression {Namespaces = namespaces};
 
         public static Parser<NamespaceExpression> Namespace() =>
@@ -589,10 +564,7 @@ namespace Lilac.Parser
             from nl in Newline().Opt()
             from groupType in GroupOpen()
             from nls1 in Newline().Star()
-            from pushScope in PushContext()
             from exprs in Expression().Or<Expression>(Definition()).StarSep(Newline().Plus())
-            from popScope in PopContext()
-            from addNamespace in AddNamespace(namespaces, popScope)
             from nls2 in Newline().Star()
             from close in GroupClose(groupType)
             select new NamespaceExpression { Namespaces = namespaces, Expressions = exprs, GroupType = groupType };

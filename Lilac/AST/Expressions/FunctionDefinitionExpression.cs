@@ -11,7 +11,7 @@ namespace Lilac.AST.Expressions
 
         public override string ToString()
         {
-            return $"let {Name} {Parameters.PrettyPrintParameters()} = {Body.ToString()}";
+            return $"let {Name} {Parameters.PrettyPrintParameters()} = {Body}";
         }
 
         public override T Accept<T>(IExpressionVisitor<T> visitor)

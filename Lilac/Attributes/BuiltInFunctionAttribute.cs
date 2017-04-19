@@ -1,4 +1,6 @@
 ﻿using System;
+using Lilac.AST;
+using Lilac.Interpreter;
 
 namespace Lilac.Attributes
 {
@@ -10,6 +12,10 @@ namespace Lilac.Attributes
         public Type DelegateType { get; }
         public bool IsOperator { get; set; }
         public string Namespace { get; set; }
+        public decimal Precedence { get; set; }
+        public Association Association { get; set; }
+
+        public OperatorInfo OperatorInfo => IsOperator ? new OperatorInfo(Precedence, Association) : null;
 
         public BuiltInFunctionAttribute(string name, Type type)
         {

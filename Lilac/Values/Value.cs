@@ -21,8 +21,6 @@ namespace Lilac.Values
             throw new Exception($"Type {GetType().Name.CamelCaseToKebabCase()} is not comparable!");
         }
 
-        public virtual Type GetValueType() => GetType();
-
         #endregion
 
         #region Built In Functions
@@ -157,20 +155,6 @@ namespace Lilac.Values
         {
             var number = value as Number;
             return Boolean.Get(number?.IsNativeInt == true);
-        }
-
-        [BuiltInFunction("print", typeof(Func<Value, Unit>))]
-        public static Unit Print(Value value)
-        {
-            Console.Write(value);
-            return Unit.Value;
-        }
-
-        [BuiltInFunction("println", typeof(Func<Value, Unit>))]
-        public static Unit PrintLn(Value value)
-        {
-            Console.WriteLine(value);
-            return Unit.Value;
         }
 
         [BuiltInFunction("typeof", typeof(Func<Value, String>))]

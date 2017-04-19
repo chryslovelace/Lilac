@@ -1,4 +1,6 @@
 ﻿using Lilac.AST.Expressions;
+using Lilac.Interpreter;
+using Lilac.Values;
 
 namespace Lilac.AST
 {
@@ -7,7 +9,7 @@ namespace Lilac.AST
         T VisitAssignment(AssignmentExpression assignment);
         T VisitBinding(BindingExpression binding);
         T VisitConditional(ConditionalExpression conditional);
-        T VisitFunctionCall(FunctionCallExpression functionCall);
+        T VisitApplication(ApplicationExpression functionCall);
         T VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition);
         T VisitGroup(GroupExpression group);
         T VisitIdentifier(IdentifierExpression identifier);
@@ -17,7 +19,7 @@ namespace Lilac.AST
         T VisitOperatorDefinition(OperatorDefinitionExpression operatorDefinition);
         T VisitStringLiteral(StringLiteralExpression stringLiteral);
         T VisitTopLevelExpression(TopLevelExpression topLevelExpression);
-        T VisitNamespacedIdentifier(NamespacedIdentifierExpression namespacedIdentifier);
+        T VisitNamespacedIdentifier(AugmentedIdentifierExpression namespacedIdentifier);
         T VisitUsing(UsingExpression usingExpression);
         T VisitOperator(OperatorExpression operatorExpression);
         T VisitMemberAccess(MemberAccessExpression memberAccess);

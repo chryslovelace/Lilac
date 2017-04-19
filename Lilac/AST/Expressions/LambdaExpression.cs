@@ -10,7 +10,7 @@ namespace Lilac.AST.Expressions
 
         public override string ToString()
         {
-            return $"lambda {Parameters.PrettyPrintParameters()} = {Body.ToString()}";
+            return $"lambda {Parameters.PrettyPrintParameters()} = {Body}";
         }
 
         public override T Accept<T>(IExpressionVisitor<T> visitor)

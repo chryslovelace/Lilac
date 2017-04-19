@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Lilac.Parser
 {
@@ -29,7 +30,7 @@ namespace Lilac.Parser
 
         private static TokenDefinition ReservedWords(params string[] reservedWords)
         {
-            var regex = string.Join("|", reservedWords.Select(System.Text.RegularExpressions.Regex.Escape));
+            var regex = string.Join("|", reservedWords.Select(Regex.Escape));
             return new TokenDefinition(TokenType.ReservedWord, regex, priority: -1);
         }
 

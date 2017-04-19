@@ -46,6 +46,9 @@
       <HintPath>..\packages\JetBrains.Annotations.10.2.1\lib\net\JetBrains.Annotations.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="NDesk.Options, Version=0.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NDesk.Options.0.2.1\lib\NDesk.Options.dll</HintPath>
+    </Reference>
     <Reference Include="SimpleInjector, Version=3.3.2.0, Culture=neutral, PublicKeyToken=984cb50dea722e99, processorArchitecture=MSIL">
       <HintPath>..\packages\SimpleInjector.3.3.2\lib\net45\SimpleInjector.dll</HintPath>
       <Private>True</Private>
@@ -66,16 +69,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AST\Association.cs" />
-    <Compile Include="AST\Context.cs" />
-    <Compile Include="AST\Definitions\Definition.cs" />
-    <Compile Include="AST\Definitions\OperatorDefinition.cs" />
     <Compile Include="AST\Expressions\AssignmentExpression.cs" />
     <Compile Include="AST\Expressions\BindingExpression.cs" />
     <Compile Include="AST\Expressions\ConditionalExpression.cs" />
     <Compile Include="AST\Expressions\EmptyExpression.cs" />
     <Compile Include="AST\Expressions\ErrorExpression.cs" />
     <Compile Include="AST\Expressions\Expression.cs" />
-    <Compile Include="AST\Expressions\FunctionCallExpression.cs" />
+    <Compile Include="AST\Expressions\ApplicationExpression.cs" />
     <Compile Include="AST\Expressions\FunctionDefinitionExpression.cs" />
     <Compile Include="AST\Expressions\GroupExpression.cs" />
     <Compile Include="AST\Expressions\IdentifierExpression.cs" />
@@ -85,7 +85,7 @@
     <Compile Include="AST\Expressions\MemberAccessExpression.cs" />
     <Compile Include="AST\Expressions\MemberAssignmentExpression.cs" />
     <Compile Include="AST\Expressions\MutableBindingExpression.cs" />
-    <Compile Include="AST\Expressions\NamespacedIdentifierExpression.cs" />
+    <Compile Include="AST\Expressions\AugmentedIdentifierExpression.cs" />
     <Compile Include="AST\Expressions\NamespaceExpression.cs" />
     <Compile Include="AST\Expressions\NumberLiteralExpression.cs" />
     <Compile Include="AST\Expressions\OperatorCallExpression.cs" />
@@ -95,24 +95,31 @@
     <Compile Include="AST\Expressions\TopLevelExpression.cs" />
     <Compile Include="AST\Expressions\UsingExpression.cs" />
     <Compile Include="AST\GroupType.cs" />
-    <Compile Include="AST\IExpressionConsumer.cs" />
     <Compile Include="AST\IExpressionVisitor.cs" />
     <Compile Include="Attributes\BuiltInFunctionAttribute.cs" />
     <Compile Include="Attributes\BuiltInMemberAttribute.cs" />
     <Compile Include="Attributes\BuiltInMethodAttribute.cs" />
     <Compile Include="Attributes\BuiltInValueAttribute.cs" />
+    <Compile Include="Bootstrapper.cs" />
     <Compile Include="Exceptions\NumericTypeException.cs" />
     <Compile Include="Exceptions\ParseException.cs" />
     <Compile Include="Exceptions\SyntaxException.cs" />
     <Compile Include="Exceptions\TypeResolutionException.cs" />
+    <Compile Include="HelpMessageEntryPoint.cs" />
+    <Compile Include="IEntryPoint.cs" />
     <Compile Include="Interpreter\Binding.cs" />
-    <Compile Include="Interpreter\BuiltInDefiner.cs" />
+    <Compile Include="Interpreter\BuiltInProvider.cs" />
     <Compile Include="Interpreter\Evaluator.cs" />
-    <Compile Include="Interpreter\IContextDefiner.cs" />
-    <Compile Include="Interpreter\IScopeDefiner.cs" />
+    <Compile Include="Interpreter\IEvaluator.cs" />
+    <Compile Include="Interpreter\IInterpreter.cs" />
+    <Compile Include="Interpreter\IOptions.cs" />
+    <Compile Include="Interpreter\IScope.cs" />
+    <Compile Include="Interpreter\IScopeProvider.cs" />
     <Compile Include="Interpreter\Interpreter.cs" />
+    <Compile Include="Interpreter\OperatorInfo.cs" />
+    <Compile Include="Interpreter\Options.cs" />
     <Compile Include="Interpreter\Scope.cs" />
-    <Compile Include="Interpreter\TypeDeductionDecorator.cs" />
+    <Compile Include="InterpretFileEntryPoint.cs" />
     <Compile Include="Parser\ILexer.cs" />
     <Compile Include="Parser\IParser.cs" />
     <Compile Include="Parser\ITokenDefiner.cs" />
@@ -124,10 +131,9 @@
     <Compile Include="Parser\TokenDefiner.cs" />
     <Compile Include="Parser\TokenDefinition.cs" />
     <Compile Include="Parser\TokenType.cs" />
-    <Compile Include="Parser\TypeContext.cs" />
-    <Compile Include="Parser\TypeDeducer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RunReplEntryPoint.cs" />
     <Compile Include="Utilities\BidirectionalIterator.cs" />
     <Compile Include="Utilities\Extensions.cs" />
     <Compile Include="Utilities\IBidirectionalIterator.cs" />

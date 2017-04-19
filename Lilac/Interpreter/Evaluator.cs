@@ -10,33 +10,30 @@ using String = Lilac.Values.String;
 
 namespace Lilac.Interpreter
 {
-    public class Evaluator : IExpressionVisitor<Value>, IExpressionConsumer<Value>
+    public class Evaluator : IEvaluator
     {
-        private Stack<Scope> Scopes { get; set; }
-        public Scope CurrentScope => Scopes.Peek();
+        private Stack<IScope<Value>> Scopes { get; set; }
+        public IScope<Value> CurrentScope => Scopes.Peek();
+        private IScope<Value> TopScope { get; set; }
 
-        public Evaluator(IScopeDefiner scopeDefiner)
+        public Evaluator(IScopeProvider<Value> scopeProvider)
         {
-            ResetScope(scopeDefiner.GetScope());
-        }
-        
-        public void ResetScope(Scope scope)
-        {
-            Scopes = new Stack<Scope>();
-            Scopes.Push(new Scope(scope));
-        }
-
-        public Value Evaluate(Expression expression)
-        {
-            return expression.Accept(this);
+            TopScope = scopeProvider.GetScope();
+            Scopes = new Stack<IScope<Value>>();
+            Scopes.Push(TopScope.NewChild());
         }
 
         private void PushScope()
         {
-            Scopes.Push(new Scope(CurrentScope));
+            Scopes.Push(CurrentScope.NewChild());
         }
 
-        public void PushScope(Scope scope)
+        private void PushNamespace(List<string> namespaces)
+        {
+            Scopes.Push(CurrentScope.NewNamespace(namespaces));
+        }
+
+        private void PushScope(IScope<Value> scope)
         {
             Scopes.Push(scope);
         }
@@ -49,56 +46,60 @@ namespace Lilac.Interpreter
         public Value VisitAssignment(AssignmentExpression assignment)
         {
             var value = assignment.ValueExpression.Accept(this);
-            CurrentScope.SetValue(assignment.Name, value);
+            CurrentScope.SetBoundItem(assignment.Name, value);
             return Unit.Value;
         }
 
         public Value VisitBinding(BindingExpression binding)
         {
             var value = binding.ValueExpression.Accept(this);
-            CurrentScope.BindValue(binding.Name, value);
+            CurrentScope.BindItem(binding.Name, value);
             return Unit.Value;
         }
 
         public Value VisitConditional(ConditionalExpression conditional)
         {
             var condition = conditional.Condition.Accept(this);
-            return condition.AsBool()
-                ? conditional.ThenExpression.Accept(this)
-                : conditional.ElseExpression?.Accept(this) ?? Unit.Value;
+            if (condition.AsBool())
+                return conditional.ThenExpression.Accept(this);
+            return conditional.ElseExpression != null ? conditional.ElseExpression.Accept(this) : Unit.Value;
         }
 
-        public Value VisitFunctionCall(FunctionCallExpression functionCall)
+        public Value VisitApplication(ApplicationExpression functionCall)
         {
             var callable = functionCall.Function.Accept(this);
             var argument = functionCall.Argument.Accept(this);
-            return Call(callable, argument);
+
+            var argId = functionCall.Argument as IdentifierExpression;
+            if (argId == null) return Call(callable, argument);
+            var binding = CurrentScope.GetBinding(argId.Name);
+            return binding.IsOperator ? Call(argument, callable) : Call(callable, argument);
         }
 
         public Value VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition)
         {
             var value = new Function(functionDefinition, CurrentScope);
-            CurrentScope.BindValue(functionDefinition.Name, value);
+            CurrentScope.BindItem(functionDefinition.Name, value);
             return Unit.Value;
         }
 
         public Value VisitGroup(GroupExpression group)
         {
             PushScope();
-            var value = group.Expressions.Select(expr => expr.Accept(this)).LastOrDefault();
+            var value = group.Expressions.Select(expression => expression.Accept(this)).LastOrDefault();
             PopScope();
             return value ?? Unit.Value;
         }
 
         public Value VisitIdentifier(IdentifierExpression identifier)
         {
-            return CurrentScope.GetValue(identifier.Name);
+            return CurrentScope.GetBoundItem(identifier.Name);
         }
 
         public Value VisitMutableBinding(MutableBindingExpression mutableBinding)
         {
             var value = mutableBinding.ValueExpression.Accept(this);
-            CurrentScope.BindValue(mutableBinding.Name, value, true);
+            CurrentScope.BindItem(mutableBinding.Name, value, true);
             return Unit.Value;
         }
 
@@ -123,7 +124,7 @@ namespace Lilac.Interpreter
 
         public Value VisitOperatorCall(OperatorCallExpression operatorCall)
         {
-            var op = CurrentScope.GetValue(operatorCall.Name);
+            var op = CurrentScope.GetBoundItem(operatorCall.Name);
             var lhs = operatorCall.Lhs.Accept(this);
             var rhs = operatorCall.Rhs.Accept(this);
             return Call(Call(op, lhs), rhs);
@@ -132,7 +133,8 @@ namespace Lilac.Interpreter
         public Value VisitOperatorDefinition(OperatorDefinitionExpression operatorDefinition)
         {
             var value = new Function(operatorDefinition, CurrentScope);
-            CurrentScope.BindValue(operatorDefinition.Name, value);
+            CurrentScope.BindItem(operatorDefinition.Name, value,
+                opInfo: new OperatorInfo(operatorDefinition.Precedence, operatorDefinition.Association));
             return Unit.Value;
         }
 
@@ -143,13 +145,13 @@ namespace Lilac.Interpreter
 
         public Value VisitTopLevelExpression(TopLevelExpression topLevelExpression)
         {
-            var value = topLevelExpression.Expressions.Select(expr => expr.Accept(this)).LastOrDefault();
+            var value = topLevelExpression.Expressions.Select(expression => expression.Accept(this)).LastOrDefault();
             return value ?? Unit.Value;
         }
 
-        public Value VisitNamespacedIdentifier(NamespacedIdentifierExpression namespacedIdentifier)
+        public Value VisitNamespacedIdentifier(AugmentedIdentifierExpression namespacedIdentifier)
         {
-            return CurrentScope.GetNamespacedBinding(namespacedIdentifier.Name, namespacedIdentifier.Namespaces).Value;
+            return CurrentScope.GetNamespacedBinding(namespacedIdentifier.Name, namespacedIdentifier.Namespaces).BoundItem;
         }
 
         public Value VisitUsing(UsingExpression usingExpression)
@@ -160,7 +162,7 @@ namespace Lilac.Interpreter
 
         public Value VisitOperator(OperatorExpression operatorExpression)
         {
-            return CurrentScope.GetValue(operatorExpression.Name);
+            return CurrentScope.GetBoundItem(operatorExpression.Name);
         }
 
         public Value VisitMemberAccess(MemberAccessExpression memberAccess)
@@ -173,11 +175,9 @@ namespace Lilac.Interpreter
 
         public Value VisitNamespace(NamespaceExpression namespaceExpression)
         {
-            PushScope();
-            var value = namespaceExpression.Expressions.Select(expr => expr.Accept(this)).LastOrDefault();
-            var ns = CurrentScope;
+            PushNamespace(namespaceExpression.Namespaces);
+            var value = namespaceExpression.Expressions.Select(expression => expression.Accept(this)).LastOrDefault();
             PopScope();
-            CurrentScope.AddNamespace(namespaceExpression.Namespaces, ns);
             return value ?? Unit.Value;
         }
 
@@ -192,7 +192,7 @@ namespace Lilac.Interpreter
 
         public Value VisitList(ListExpression list)
         {
-            return new List(list.Expressions.Select(e => e.Accept(this)));
+            return new List(list.Expressions.Select(expression => expression.Accept(this)));
         }
 
         public Value VisitLambda(LambdaExpression lambdaExpression)
@@ -273,7 +273,7 @@ namespace Lilac.Interpreter
             PushScope();
             for (var i = 0; i < function.Parameters.Count; i++)
             {
-                CurrentScope.BindValue(function.Parameters[i], arguments[i]);
+                CurrentScope.BindItem(function.Parameters[i], arguments[i]);
             }
             var value = function.Body.Accept(this);
             PopScope();
@@ -298,9 +298,9 @@ namespace Lilac.Interpreter
             return function.Parameters.Count > 1 ? new CurriedFunction(function).Apply(argument) : ExecuteFunction(function, new[] { argument });
         }
 
-        public Value Consume(Expression expression)
+        public void InjectBuiltInValue(string name, Value value, OperatorInfo opInfo = null)
         {
-            return expression.Accept(this);
+            TopScope.BindItem(name, value, opInfo: opInfo);
         }
     }
 }

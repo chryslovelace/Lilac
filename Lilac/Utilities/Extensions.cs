@@ -59,9 +59,10 @@ namespace Lilac.Utilities
 
         public static Type GetCurriedType(this Type callableType)
         {
-            var typeArgs = callableType.GenericTypeArguments.Skip(1).ToArray();
+            var typeArgs = callableType.GenericTypeArguments;
+            if (typeArgs.Length == 1) return typeArgs[0];
 
-            return Type.GetType($"System.Func`{typeArgs.Length}", true).MakeGenericType(typeArgs);
+            return Type.GetType($"System.Func`{typeArgs.Length - 1}", true).MakeGenericType(typeArgs.Skip(1).ToArray());
         }
 
         public static string LilacTypeName(this Type type)

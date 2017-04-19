@@ -7,7 +7,7 @@
 
         public override string ToString()
         {
-            return $"let ref {Name} = {ValueExpression.ToString()}";
+            return $"let ref {Name} = {ValueExpression}";
         }
 
         public override T Accept<T>(IExpressionVisitor<T> visitor)

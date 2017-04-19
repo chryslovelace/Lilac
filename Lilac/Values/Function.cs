@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Lilac.AST.Expressions;
 using Lilac.Interpreter;
 
@@ -8,11 +7,11 @@ namespace Lilac.Values
     public class Function : Value
     {
         public string DeclaringName { get; }
-        public Scope DeclaringScope { get; }
+        public IScope<Value> DeclaringScope { get; }
         public IReadOnlyList<string> Parameters { get; }
         public Expression Body { get; }
 
-        public Function(FunctionDefinitionExpression functionDefinition, Scope declaringScope)
+        public Function(FunctionDefinitionExpression functionDefinition, IScope<Value> declaringScope)
         {
             DeclaringName = functionDefinition.Name;
             Parameters = functionDefinition.Parameters;
@@ -20,7 +19,7 @@ namespace Lilac.Values
             DeclaringScope = declaringScope;
         }
 
-        public Function(OperatorDefinitionExpression operatorDefinition, Scope declaringScope)
+        public Function(OperatorDefinitionExpression operatorDefinition, IScope<Value> declaringScope)
         {
             DeclaringName = operatorDefinition.Name;
             Parameters = operatorDefinition.Parameters;
@@ -28,7 +27,7 @@ namespace Lilac.Values
             DeclaringScope = declaringScope;
         }
 
-        public Function(LambdaExpression lambdaExpression, Scope declaringScope)
+        public Function(LambdaExpression lambdaExpression, IScope<Value> declaringScope)
         {
             DeclaringName = "anonymous function";
             Parameters = lambdaExpression.Parameters;

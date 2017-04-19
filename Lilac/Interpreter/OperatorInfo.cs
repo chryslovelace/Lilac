@@ -1,11 +1,13 @@
-﻿namespace Lilac.AST.Definitions
+﻿using Lilac.AST;
+
+namespace Lilac.Interpreter
 {
-    public class OperatorDefinition : Definition
+    public class OperatorInfo
     {
         public decimal Precedence { get; set; }
         public Association Association { get; set; }
 
-        public OperatorDefinition(string name, decimal precedence, Association association) : base(name)
+        public OperatorInfo(decimal precedence, Association association)
         {
             Precedence = precedence;
             Association = association;

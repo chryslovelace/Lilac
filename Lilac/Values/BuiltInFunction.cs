@@ -5,6 +5,8 @@ namespace Lilac.Values
 {
     public class BuiltInFunction : Value
     {
+        private Func<Value, Unit> print;
+
         public Delegate Method { get; }
         public int ParameterCount { get; }
         
@@ -12,6 +14,17 @@ namespace Lilac.Values
         {
             Method = methodInfo.CreateDelegate(delegateType, target);
             ParameterCount = methodInfo.GetParameters().Length;
+        }
+
+        public BuiltInFunction(Delegate method)
+        {
+            Method = method;
+            ParameterCount = method.Method.GetParameters().Length;
+        }
+
+        public BuiltInFunction(Func<Value, Unit> print)
+        {
+            this.print = print;
         }
 
         public override string ToString()
@@ -22,11 +35,6 @@ namespace Lilac.Values
         public override bool IsCallable()
         {
             return true;
-        }
-
-        public override Type GetValueType()
-        {
-            return Method.GetType();
         }
     }
 }

@@ -8,33 +8,12 @@
 
         public override string ToString()
         {
-            return $"({Lhs.ToString()} {Name} {Rhs.ToString()})";
+            return $"({Lhs} {Name} {Rhs})";
         }
 
         public override T Accept<T>(IExpressionVisitor<T> visitor)
         {
             return visitor.VisitOperatorCall(this);
-        }
-
-        public override Expression ResolvePrecedence()
-        {
-            var rhsOp = Rhs as OperatorCallExpression;
-            if (rhsOp != null)
-            {
-                return new OperatorCallExpression
-                {
-                    Lhs = new OperatorCallExpression
-                    {
-                        Lhs = Lhs,
-                        Name = Name,
-                        Rhs = rhsOp.Lhs
-                    }.ResolvePrecedence(),
-                    Name = rhsOp.Name,
-                    Rhs = rhsOp.Rhs
-                };
-            }
-
-            return this;
         }
     }
 }

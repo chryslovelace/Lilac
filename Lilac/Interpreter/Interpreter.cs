@@ -1,82 +1,75 @@
 ﻿using System;
 using System.IO;
 using Lilac.AST;
-using Lilac.Attributes;
+using Lilac.AST.Expressions;
 using Lilac.Parser;
-using Lilac.Utilities;
 using Lilac.Values;
 
 namespace Lilac.Interpreter
 {
-    public class Interpreter
+    public class Interpreter : IInterpreter
     {
         #region Private Properties
 
         private ILexer Lexer { get; }
         private IParser Parser { get; }
-        private IExpressionConsumer<Value> Evaluator { get; }
+        private IEvaluator Evaluator { get; }
+        private IOptions Options { get; }
 
         #endregion
 
-        public Interpreter(ILexer lexer, IParser parser, IExpressionConsumer<Value> evaluator)
+        public Interpreter(ILexer lexer, IParser parser, IEvaluator evaluator, IOptions options)
         {
             Lexer = lexer;
             Parser = parser;
             Evaluator = evaluator;
+            Options = options;
+            InjectBuiltIns();
         }
 
         #region Private Methods
 
-        private Value EvaluateProgram(TextReader text)
+        private void InjectBuiltIns()
         {
-            var tokens = Lexer.Tokenize(text);
-            var expr = Parser.Parse(tokens);
-            var value = Evaluator.Consume(expr);
-            return value;
+            Evaluator.InjectBuiltInValue("print", new BuiltInFunction(new Func<Value, Unit>(Print)));
+            Evaluator.InjectBuiltInValue("println", new BuiltInFunction(new Func<Value, Unit>(PrintLn)));
+            Evaluator.InjectBuiltInValue("open", new BuiltInFunction(new Func<Values.String, Value>(Open)));
+        }
+
+        private Unit Print(Value value)
+        {
+            Options.Output.Write(value);
+            return Unit.Value;
+        }
+
+        private Unit PrintLn(Value value)
+        {
+            Options.Output.WriteLine(value);
+            return Unit.Value;
+        }
+
+        private Value Open(Values.String filepath)
+        {
+            return EvaluateProgram(File.OpenText(filepath.ToString()));
         }
 
         #endregion
 
-        #region Public Methods
-
-        public void RunRepl()
+        public Value EvaluateProgram(TextReader text)
         {
-            while (true)
+            try
             {
-                Console.Write(">>> ");
-                var line = Console.ReadLine();
-                if (line == null) break;
-                try
-                {
-                    var value = EvaluateProgram(new StringReader(line));
-                    if (!(value is Unit)) Console.WriteLine(value);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Runtime Error: " + e.Message);
-                }
+                var tokens = Lexer.Tokenize(text);
+                var expr = Parser.Parse(tokens);
+                var value = expr.Accept<Value>(Evaluator);
+                return value;
+            }
+            catch (Exception e)
+            {
+                Options.Error.WriteLine("Runtime Error: " + e.Message);
+                return null;
             }
         }
 
-        public Value Open(string file)
-        {
-            var text = File.OpenText(file);
-            var value = EvaluateProgram(text);
-            return value;
-        }
-
-        
-
-        #endregion
-
-        #region Built In Functions
-
-        [BuiltInFunction("quit", typeof(Action))]
-        private static void Quit()
-        {
-            Environment.Exit(0);
-        }
-
-        #endregion
     }
 }

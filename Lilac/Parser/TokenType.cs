@@ -21,6 +21,6 @@
         Whitespace,
         Comment,
         ReservedWord,
-        Unrecognized,
+        Unrecognized
     }
 }
