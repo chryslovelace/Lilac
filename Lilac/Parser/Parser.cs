@@ -55,12 +55,12 @@ namespace Lilac.Parser
         public static Result<Tuple<ParserState, T>, ParseException> OnFailure<T>(this Maybe<Tuple<ParserState, T>> maybe, string message, ParserState state)
            => Result<Tuple<ParserState, T>, ParseException>.FromMaybe(maybe, new ParseException(message, state));
 
-        public static Expression Parse<T>(this Parser<T> parser, ParserState state) where T : Expression
-            => parser(state).Match(
+        public static T Parse<T>(this Parser<T> parser, IEnumerable<Token> tokens)
+            => parser(new ParserState(tokens)).Match(
                 ok => ok.Item2,
                 error => { throw error; });
 
-        public static Expression Parse<T>(this Parser<T> parser, ref ParserState state) where T : Expression
+        public static T Parse<T>(this Parser<T> parser, ref ParserState state)
         {
             var result = parser(state);
             var ok = result as Ok<Tuple<ParserState, T>, ParseException>;

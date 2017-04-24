@@ -116,17 +116,17 @@ namespace Lilac.Interpreter
             return space.GetNamespacedBinding(name, namespaces.Skip(1).ToArray());
         }
 
-        public void BindItem(string name, T value, bool isMutable = false, OperatorInfo opInfo = null)
+        public void BindItem(string name, T value, bool isMutable = false)
         {
             if (Bindings.ContainsKey(name)) throw new Exception($"Local binding {name} already exists!");
-            Bindings[name] = new Binding<T> { Name = name, BoundItem = value, IsMutable = isMutable, OperatorInfo = opInfo};
+            Bindings[name] = new Binding<T> { Name = name, BoundItem = value, IsMutable = isMutable};
         }
 
-        public void BindNamespacedItem(string name, T value, IList<string> namespaces, bool isMutable = false, OperatorInfo opInfo = null)
+        public void BindNamespacedItem(string name, T value, IList<string> namespaces, bool isMutable = false)
         {
             if (namespaces.Count == 0)
             {
-                BindItem(name, value, isMutable, opInfo);
+                BindItem(name, value, isMutable);
                 return;
             }
             Scope<T> space;
@@ -134,7 +134,7 @@ namespace Lilac.Interpreter
             {
                 Namespaces[namespaces[0]] = space = new Scope<T>();
             }
-            space.BindNamespacedItem(name, value, namespaces.Skip(1).ToArray(), isMutable, opInfo);
+            space.BindNamespacedItem(name, value, namespaces.Skip(1).ToArray(), isMutable);
         }
 
         public void SetBoundItem(string name, T value)

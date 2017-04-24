@@ -6,9 +6,7 @@ namespace Lilac.Interpreter
     {
         public string Name { get; set; }
         public bool IsMutable { get; set; }
-        public bool IsOperator => OperatorInfo != null;
         public T BoundItem { get; set; }
-        public OperatorInfo OperatorInfo { get; set; }
 
 
         public Binding<T> WithPrefix(string prefix)
@@ -18,7 +16,6 @@ namespace Lilac.Interpreter
             {
                 Name = $"{prefix}.{Name}",
                 IsMutable = IsMutable,
-                OperatorInfo = OperatorInfo,
                 BoundItem = BoundItem
             };
         }

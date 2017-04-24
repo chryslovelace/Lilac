@@ -69,11 +69,7 @@ namespace Lilac.Interpreter
         {
             var callable = functionCall.Function.Accept(this);
             var argument = functionCall.Argument.Accept(this);
-
-            var argId = functionCall.Argument as IdentifierExpression;
-            if (argId == null) return Call(callable, argument);
-            var binding = CurrentScope.GetBinding(argId.Name);
-            return binding.IsOperator ? Call(argument, callable) : Call(callable, argument);
+            return Call(callable, argument);
         }
 
         public Value VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition)
@@ -133,8 +129,7 @@ namespace Lilac.Interpreter
         public Value VisitOperatorDefinition(OperatorDefinitionExpression operatorDefinition)
         {
             var value = new Function(operatorDefinition, CurrentScope);
-            CurrentScope.BindItem(operatorDefinition.Name, value,
-                opInfo: new OperatorInfo(operatorDefinition.Precedence, operatorDefinition.Association));
+            CurrentScope.BindItem(operatorDefinition.Name, value);
             return Unit.Value;
         }
 
@@ -300,7 +295,7 @@ namespace Lilac.Interpreter
 
         public void InjectBuiltInValue(string name, Value value, OperatorInfo opInfo = null)
         {
-            TopScope.BindItem(name, value, opInfo: opInfo);
+            TopScope.BindItem(name, value);
         }
     }
 }

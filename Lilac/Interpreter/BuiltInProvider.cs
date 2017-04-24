@@ -54,13 +54,13 @@ namespace Lilac.Interpreter
         {
             if (string.IsNullOrWhiteSpace(attribute.Namespace))
             {
-                BuiltInsScope.BindItem(attribute.Name, new BuiltInFunction(method, attribute.DelegateType), opInfo: attribute.OperatorInfo);
+                BuiltInsScope.BindItem(attribute.Name, new BuiltInFunction(method, attribute.DelegateType));
             }
             else
             {
                 var namespaces = attribute.Namespace.Split('.');
                 BuiltInsScope.BindNamespacedItem(attribute.Name, new BuiltInFunction(method, attribute.DelegateType),
-                    namespaces, opInfo: attribute.OperatorInfo);
+                    namespaces);
             }
         }
 

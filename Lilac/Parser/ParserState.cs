@@ -9,7 +9,6 @@ namespace Lilac.Parser
     {
         private IBidirectionalIterator<Token> TokenStream { get; set; }
         private ImmutableList<string> Messages { get; set; }
-        private ImmutableHashSet<string> TempReservedWords { get; set; }
 
         private ParserState() { }
 
@@ -18,23 +17,6 @@ namespace Lilac.Parser
             TokenStream = new BidirectionalIterator<Token>(tokens);
             TokenStream.MoveNext();
             Messages = ImmutableList<string>.Empty;
-            TempReservedWords = ImmutableHashSet<string>.Empty;
-        }
-
-        public ParserState New(IEnumerable<Token> tokens)
-        {
-            return new ParserState(tokens);
-        }
-        
-
-        public ParserState Copy()
-        {
-            return new ParserState
-            {
-                TokenStream = TokenStream.Copy(),
-                Messages = Messages,
-                TempReservedWords = TempReservedWords
-            };
         }
         
         public ParserState NextToken()
@@ -43,7 +25,6 @@ namespace Lilac.Parser
             {
                 TokenStream = TokenStream.Copy(),
                 Messages = Messages,
-                TempReservedWords = TempReservedWords
             };
             state.TokenStream.MoveNext();
             return state;

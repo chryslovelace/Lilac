@@ -120,6 +120,7 @@
     <Compile Include="Interpreter\Options.cs" />
     <Compile Include="Interpreter\Scope.cs" />
     <Compile Include="InterpretFileEntryPoint.cs" />
+    <Compile Include="Parser\BuiltInOperatorInfoProvider.cs" />
     <Compile Include="Parser\ILexer.cs" />
     <Compile Include="Parser\IParser.cs" />
     <Compile Include="Parser\ITokenDefiner.cs" />
@@ -127,6 +128,7 @@
     <Compile Include="Parser\MonadicParserWrapper.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Parser\ParserState.cs" />
+    <Compile Include="Parser\PrecedenceResolver.cs" />
     <Compile Include="Parser\Token.cs" />
     <Compile Include="Parser\TokenDefiner.cs" />
     <Compile Include="Parser\TokenDefinition.cs" />
