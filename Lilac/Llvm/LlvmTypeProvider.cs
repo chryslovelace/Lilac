@@ -105,6 +105,7 @@ namespace Lilac.Llvm
                     LLVM.GetNamedGlobal(LlvmContext.Module, interfaces[i]),
                     curr
                 }));
+                curr = global;
             }
             return curr;
         }
