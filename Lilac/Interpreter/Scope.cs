@@ -110,10 +110,18 @@ namespace Lilac.Interpreter
 
         public Binding<T> GetNamespacedBinding(string name, IList<string> namespaces)
         {
+            Binding<T> b;
+            if (!TryGetNamespacedBinding(name, namespaces, out b))
+                throw new Exception($"Binding {string.Join(".", namespaces)}.{name} not found!");
+            return b;
+        }
+
+        private bool TryGetNamespacedBinding(string name, IList<string> namespaces, out Binding<T> binding)
+        {
             if (namespaces.Count == 0)
-                return GetBinding(name);
+                return TryGetBinding(name, out binding);
             var space = GetNamespace(namespaces[0]);
-            return space.GetNamespacedBinding(name, namespaces.Skip(1).ToArray());
+            return space.TryGetNamespacedBinding(name, namespaces.Skip(1).ToArray(), out binding);
         }
 
         public void BindItem(string name, T value, bool isMutable = false)
@@ -157,6 +165,23 @@ namespace Lilac.Interpreter
                 Namespaces[namespaces[0]] = space = new Scope<T>();
             }
             space.AddNamespace(namespaces.Skip(1).ToList(), ns);
+        }
+
+        public T GetNamespaceBoundItem(string name, IList<string> namespaces)
+        {
+            return GetNamespacedBinding(name, namespaces).BoundItem;
+        }
+
+        public T GetBoundItemOrDefault(string name)
+        {
+            Binding<T> b;
+            return TryGetBinding(name, out b) ? b.BoundItem : default(T);
+        }
+
+        public T GetNamespaceBoundItemOrDefault(string name, IList<string> namespaces)
+        {
+            Binding<T> b;
+            return TryGetNamespacedBinding(name, namespaces, out b) ? b.BoundItem : default(T);
         }
     }
 }

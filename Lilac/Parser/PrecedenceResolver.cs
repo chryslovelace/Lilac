@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Lilac.AST;
 using Lilac.AST.Expressions;
@@ -7,7 +8,7 @@ using Lilac.Values;
 
 namespace Lilac.Parser
 {
-    public class PrecedenceResolver : IExpressionVisitor<Expression>
+    public class PrecedenceResolver : IdentityExpressionTransformer
     {
         private Stack<IScope<OperatorInfo>> Scopes { get; set; }
         public IScope<OperatorInfo> CurrentScope => Scopes.Peek();
@@ -40,124 +41,59 @@ namespace Lilac.Parser
             Scopes.Pop();
         }
 
-        public Expression VisitAssignment(AssignmentExpression assignment) => new AssignmentExpression
+        public override Expression VisitApplication(ApplicationExpression functionCall)
         {
-            Name = assignment.Name,
-            ValueExpression = assignment.ValueExpression.Accept(this)
-        };
-
-        public Expression VisitBinding(BindingExpression binding) => new BindingExpression
-        {
-            Name = binding.Name,
-            ValueExpression = binding.ValueExpression.Accept(this)
-        };
-
-        public Expression VisitConditional(ConditionalExpression conditional) => new ConditionalExpression
-        {
-            Condition = conditional.Condition.Accept(this),
-            ThenExpression = conditional.ThenExpression.Accept(this),
-            ElseExpression = conditional.ElseExpression?.Accept(this)
-        };
-
-        public Expression VisitApplication(ApplicationExpression functionCall)
-        {
-            throw new System.NotImplementedException();
+            var exprs = ExpandApplications(functionCall);
+            var opInfo = exprs.Select(e =>
+            {
+                var id = e as IdentifierExpression;
+                if (id != null) return CurrentScope.GetBoundItemOrDefault(id.Name);
+                var aid = e as AugmentedIdentifierExpression;
+                if (aid != null) return CurrentScope.GetNamespaceBoundItemOrDefault(aid.Name, aid.Namespaces);
+                return null;
+            });
+            throw new NotImplementedException();
         }
 
-        public Expression VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition) => new FunctionDefinitionExpression
+        private List<Expression> ExpandApplications(ApplicationExpression functionCall)
         {
-            Name = functionDefinition.Name,
-            Body = functionDefinition.Body.Accept(this),
-            Parameters = functionDefinition.Parameters
-        };
-
-        public Expression VisitGroup(GroupExpression @group) => new GroupExpression
-        {
-            GroupType = @group.GroupType,
-            Expressions = @group.Expressions.Select(e => e.Accept(this)).ToList()
-        };
-
-        public Expression VisitIdentifier(IdentifierExpression identifier) => identifier;
-
-        public Expression VisitMutableBinding(MutableBindingExpression mutableBinding) => new MutableBindingExpression
-        {
-            Name = mutableBinding.Name,
-            ValueExpression = mutableBinding.ValueExpression.Accept(this)
-        };
-
-        public Expression VisitNumberLiteral(NumberLiteralExpression numberLiteral)
-        {
-            return numberLiteral;
+            var curr = functionCall;
+            var exprs = new List<Expression>();
+            do
+            {
+                exprs.Add(curr.Argument);
+                var func = curr.Function as ApplicationExpression;
+                if (func == null) break;
+                curr = func;
+            } while (true);
+            exprs.Add(curr.Function);
+            exprs.Reverse();
+            return exprs;
         }
 
-        public Expression VisitOperatorCall(OperatorCallExpression operatorCall)
+        public override Expression VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition)
         {
-            throw new System.NotImplementedException();
+            PushScope();
+            var expr = base.VisitFunctionDefinition(functionDefinition);
+            PopScope();
+            return expr;
         }
 
-        public Expression VisitOperatorDefinition(OperatorDefinitionExpression operatorDefinition)
+        public override Expression VisitGroup(GroupExpression @group)
         {
-            throw new System.NotImplementedException();
+            PushScope();
+            var expr = base.VisitGroup(@group);
+            PopScope();
+            return expr;
         }
 
-        public Expression VisitStringLiteral(StringLiteralExpression stringLiteral)
+        public override Expression VisitOperatorDefinition(OperatorDefinitionExpression operatorDefinition)
         {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitTopLevelExpression(TopLevelExpression topLevelExpression)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitNamespacedIdentifier(AugmentedIdentifierExpression namespacedIdentifier)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitUsing(UsingExpression usingExpression)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitOperator(OperatorExpression operatorExpression)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitMemberAccess(MemberAccessExpression memberAccess)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitNamespace(NamespaceExpression namespaceExpression)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitMemberAssignment(MemberAssignmentExpression memberAssignment)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitList(ListExpression list)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitLambda(LambdaExpression lambdaExpression)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitLinkedList(LinkedListExpression linkedListExpression)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Expression VisitError(ErrorExpression errorExpression)
-        {
-            throw new System.NotImplementedException();
+            CurrentScope.BindItem(operatorDefinition.Name, new OperatorInfo(operatorDefinition.Precedence, operatorDefinition.Association));
+            PushScope();
+            var expr = base.VisitOperatorDefinition(operatorDefinition);
+            PopScope();
+            return expr;
         }
     }
 }

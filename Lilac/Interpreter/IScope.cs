@@ -6,6 +6,9 @@ namespace Lilac.Interpreter
     {
         bool BindingExists(string name);
         T GetBoundItem(string name);
+        T GetNamespaceBoundItem(string name, IList<string> namespaces);
+        T GetBoundItemOrDefault(string name);
+        T GetNamespaceBoundItemOrDefault(string name, IList<string> namespaces);
         Binding<T> GetBinding(string name);
         IScope<T> GetNamespace(string name);
         IScope<T> GetNamespace(IList<string> namespaces);
