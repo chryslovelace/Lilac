@@ -7,8 +7,7 @@ namespace Lilac.Parser
     {
         public Expression Parse(IEnumerable<Token> tokens)
         {
-            var state = new ParserState(tokens);
-            var expr = Parser.TopLevel().Parse(ref state);
+            var expr = Parser.TopLevel().Parse(tokens);
             return expr;
         }
     }

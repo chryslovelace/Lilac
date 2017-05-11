@@ -9,7 +9,6 @@ namespace Lilac.AST
         T VisitAssignment(AssignmentExpression assignment);
         T VisitBinding(BindingExpression binding);
         T VisitConditional(ConditionalExpression conditional);
-        T VisitApplication(ApplicationExpression functionCall);
         T VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition);
         T VisitGroup(GroupExpression group);
         T VisitIdentifier(IdentifierExpression identifier);
@@ -29,5 +28,6 @@ namespace Lilac.AST
         T VisitLambda(LambdaExpression lambdaExpression);
         T VisitLinkedList(LinkedListExpression linkedListExpression);
         T VisitError(ErrorExpression errorExpression);
+        T VisitFunctionCall(FunctionCallExpression functionCallExpression);
     }
 }

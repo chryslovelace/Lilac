@@ -25,12 +25,6 @@ namespace Lilac.Parser
             ElseExpression = conditional.ElseExpression?.Accept(this)
         };
 
-        public virtual Expression VisitApplication(ApplicationExpression functionCall) => new ApplicationExpression
-        {
-            Function = functionCall.Function.Accept(this),
-            Argument = functionCall.Argument.Accept(this)
-        };
-
         public virtual Expression VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition) => new FunctionDefinitionExpression
         {
             Name = functionDefinition.Name,
@@ -122,5 +116,10 @@ namespace Lilac.Parser
         };
 
         public virtual Expression VisitError(ErrorExpression errorExpression) => errorExpression;
+
+        public virtual Expression VisitFunctionCall(FunctionCallExpression functionCallExpression)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

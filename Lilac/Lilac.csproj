@@ -119,7 +119,7 @@
     <Compile Include="AST\Expressions\EmptyExpression.cs" />
     <Compile Include="AST\Expressions\ErrorExpression.cs" />
     <Compile Include="AST\Expressions\Expression.cs" />
-    <Compile Include="AST\Expressions\ApplicationExpression.cs" />
+    <Compile Include="AST\Expressions\FunctionCallExpression.cs" />
     <Compile Include="AST\Expressions\FunctionDefinitionExpression.cs" />
     <Compile Include="AST\Expressions\GroupExpression.cs" />
     <Compile Include="AST\Expressions\IdentifierExpression.cs" />
@@ -186,6 +186,7 @@
     <Compile Include="Utilities\BidirectionalIterator.cs" />
     <Compile Include="Utilities\Extensions.cs" />
     <Compile Include="Utilities\IBidirectionalIterator.cs" />
+    <Compile Include="Utilities\LinkedListExtensions.cs" />
     <Compile Include="Utilities\Maybe.cs" />
     <Compile Include="Utilities\MemberContainer.cs" />
     <Compile Include="Utilities\Result.cs" />

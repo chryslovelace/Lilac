@@ -26,10 +26,10 @@ namespace Lilac.Utilities
             for (var i = 0; i < str.Length; i++)
             {
                 var c = str[i];
-                if (Char.IsUpper(c))
+                if (char.IsUpper(c))
                 {
                     if (i > 0) sb.Append('-');
-                    sb.Append(Char.ToLower(c));
+                    sb.Append(char.ToLower(c));
                 }
                 else
                 {
@@ -41,7 +41,7 @@ namespace Lilac.Utilities
 
         public static string PrettyPrintParameters(this IReadOnlyList<string> parameters)
         {
-            return parameters.Count == 0 ? "()" : String.Join(" ", parameters);
+            return parameters.Any() ? string.Join(" ", parameters) : "()";
         }
 
         public static int[] ToUtf32(this string str)

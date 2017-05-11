@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using Lilac.AST;
 using Lilac.AST.Expressions;
@@ -8,6 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Lilac.Tests
 {
+    [ExcludeFromCodeCoverage]
     [TestClass]
     public class ParserTest
     {
@@ -102,6 +104,45 @@ namespace Lilac.Tests
                 .Invoking(p => p.Parse(new[] {new Token {Content = "", TokenType = TokenType.OpenGroup}}))
                 .ShouldThrow<ParseException>();
 
+        }
+
+        [TestMethod]
+        public void MemberAssignmentTest()
+        {
+            var expr = Parser.Parser.MemberAssignment().Parse(new[]
+            {
+                new Token {Content = "set!", TokenType = TokenType.ReservedWord},
+                new Token {Content = "a", TokenType = TokenType.Identifier},
+                new Token {Content = ".", TokenType = TokenType.Period},
+                new Token {Content = "e", TokenType = TokenType.Identifier},
+                new Token {Content = ".", TokenType = TokenType.Period},
+                new Token {Content = "b", TokenType = TokenType.Identifier},
+                new Token {Content = ".", TokenType = TokenType.Period},
+                new Token {Content = "d", TokenType = TokenType.Identifier},
+                new Token {Content = "=", TokenType = TokenType.Identifier},
+                new Token {Content = "c", TokenType = TokenType.Identifier},
+                new Token {Content = "3", TokenType = TokenType.DecimalNumber},
+            });
+
+            var target = expr.Target as AugmentedIdentifierExpression;
+            target.Should().NotBeNull();
+            target.Name.Should().Be("b");
+            target.Namespaces.Should().BeEquivalentTo("a", "e");
+
+            expr.Member.Should().Be("d");
+
+            var value = expr.ValueExpression as GroupExpression;
+            value.Should().NotBeNull();
+            value.GroupType.Should().Be(GroupType.Line);
+            value.Expressions.Count.Should().Be(2);
+            var v0 = value.Expressions[0] as IdentifierExpression;
+            v0.Should().NotBeNull();
+            v0.Name.Should().Be("c");
+
+            var v1 = value.Expressions[1] as NumberLiteralExpression;
+            v1.Should().NotBeNull();
+            v1.LiteralType.Should().Be(TokenType.DecimalNumber);
+            v1.Value.Should().Be("3");
         }
     }
 }

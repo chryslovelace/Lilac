@@ -65,13 +65,6 @@ namespace Lilac.Interpreter
             return conditional.ElseExpression != null ? conditional.ElseExpression.Accept(this) : Unit.Value;
         }
 
-        public Value VisitApplication(ApplicationExpression functionCall)
-        {
-            var callable = functionCall.Function.Accept(this);
-            var argument = functionCall.Argument.Accept(this);
-            return Call(callable, argument);
-        }
-
         public Value VisitFunctionDefinition(FunctionDefinitionExpression functionDefinition)
         {
             var value = new Function(functionDefinition, CurrentScope);
@@ -296,6 +289,11 @@ namespace Lilac.Interpreter
         public void InjectBuiltInValue(string name, Value value, OperatorInfo opInfo = null)
         {
             TopScope.BindItem(name, value);
+        }
+
+        public Value VisitFunctionCall(FunctionCallExpression functionCallExpression)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -4,6 +4,7 @@
     {
         Indented,
         Parenthesized,
-        TopLevel
+        TopLevel,
+        Line
     }
 }

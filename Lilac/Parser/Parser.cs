@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Lilac.AST;
 using Lilac.AST.Expressions;
 using Lilac.Exceptions;
@@ -55,20 +56,23 @@ namespace Lilac.Parser
         public static Result<Tuple<ParserState, T>, ParseException> OnFailure<T>(this Maybe<Tuple<ParserState, T>> maybe, string message, ParserState state)
            => Result<Tuple<ParserState, T>, ParseException>.FromMaybe(maybe, new ParseException(message, state));
 
-        public static T Parse<T>(this Parser<T> parser, IEnumerable<Token> tokens)
-            => parser(new ParserState(tokens)).Match(
-                ok => ok.Item2,
-                error => { throw error; });
-
-        public static T Parse<T>(this Parser<T> parser, ref ParserState state)
+        public static Token CheckValid(Token token)
         {
-            var result = parser(state);
-            var ok = result as Ok<Tuple<ParserState, T>, ParseException>;
-            if (ok == null) throw ((Error<Tuple<ParserState, T>, ParseException>) result).Value;
-            state = ok.Value.Item1;
-            return ok.Value.Item2;
+            if (token.TokenType == TokenType.Unrecognized)
+                throw new ParseException($"Cannot parse unrecognized token: {token}.");
+            if (token.TokenType == TokenType.Number)
+                throw new ParseException($"Cannot parse abstract number token, use a specific number type: {token}.");
+            return token;
         }
 
+        public static T Parse<T>(this Parser<T> parser, IEnumerable<Token> tokens)
+        {
+            
+            return parser(new ParserState(tokens.Select(CheckValid))).Match(
+                ok => ok.Item2,
+                error => { throw error; });
+        }
+        
         public static Parser<Expression> AsExpression<T>(this Parser<T> parser) where T : Expression
             => state =>
                 from result in parser(state)
@@ -135,7 +139,7 @@ namespace Lilac.Parser
         public static Parser<List<T>> Plus<T>(this Parser<T> parser, string errorMessage = null)
             => state =>
             {
-                var star = (Ok<Tuple<ParserState, List<T>>, ParseException>) parser.Star()(state);
+                var star = (Ok<Tuple<ParserState, List<T>>, ParseException>)parser.Star()(state);
                 return star.Value.Map((newstate, list) => list.Count == 0)
                     ? Error<List<T>>(errorMessage ?? "Expected one or more of something, got none.", state)
                     : star;
@@ -144,7 +148,7 @@ namespace Lilac.Parser
         public static Parser<List<T>> PlusSep<T, TSep>(this Parser<T> parser, Parser<TSep> sepParser, string errorMessage = null)
             => state =>
             {
-                var star = (Ok<Tuple<ParserState, List<T>>, ParseException>) parser.StarSep(sepParser)(state);
+                var star = (Ok<Tuple<ParserState, List<T>>, ParseException>)parser.StarSep(sepParser)(state);
                 return star.Value.Map((newstate, list) => list.Count == 0)
                     ? Error<List<T>>(errorMessage ?? "Expected separated list of one or more of something, got none.", state)
                     : star;
@@ -164,7 +168,7 @@ namespace Lilac.Parser
             Func<T, bool> predicate) =>
                 from l in leading.Opt()
                 from t in parser
-                where predicate(t) || (l is Nothing<TLeading>)
+                where l is Nothing<TLeading> || predicate(t)
                 select t;
 
         public static Parser<T> WithOptLeading<T, TLeading>(this Parser<T> parser, Parser<TLeading> leading) =>
@@ -338,15 +342,15 @@ namespace Lilac.Parser
                 from token in state.GetToken()
                 where token.TokenType < TokenType.Number
                 select
-                    Tuple.Create(state.NextToken($"Parsed {token}"), new NumberLiteralExpression {Value = token.Content, LiteralType = token.TokenType}))
-                .OnFailure($"Expected number, got {state.GetToken()}.", state);
+                    Tuple.Create(state.NextToken($"Parsed {token}"), new NumberLiteralExpression { Value = token.Content, LiteralType = token.TokenType }))
+.OnFailure($"Expected number, got {state.GetToken()}.", state);
 
         public static Parser<StringLiteralExpression> String()
             => state => (
                 from token in state.GetToken()
                 where token.TokenType == TokenType.String
                 select
-                    Tuple.Create(state.NextToken($"Parsed {token}"), new StringLiteralExpression {Value = token.Content}))
+                    Tuple.Create(state.NextToken($"Parsed {token}"), new StringLiteralExpression { Value = token.Content }))
                 .OnFailure($"Expected string, got {state.GetToken()}.", state);
 
         #endregion
@@ -378,35 +382,46 @@ namespace Lilac.Parser
 
         public static Parser<ErrorExpression> Error() =>
             from tokens in NonDelimiter().Star()
-            select new ErrorExpression {ErrorTokens = tokens};
-        
+            select new ErrorExpression { ErrorTokens = tokens };
+
         public static Parser<IdentifierExpression> Identifier() =>
             from id in Id()
-            select new IdentifierExpression {Name = id};
+            select new IdentifierExpression { Name = id };
 
         public static Parser<OperatorExpression> OperatorFunction() =>
             from open in GroupOpen(GroupType.Parenthesized)
             from op in Operator()
             from close in GroupClose(GroupType.Parenthesized)
-            select new OperatorExpression {Name = op};
+            select new OperatorExpression { Name = op };
 
-        public static Parser<ApplicationExpression> Application(this Expression function) => 
-            from argument in Expression()
-            select new ApplicationExpression {Function = function, Argument = argument};
-        
-        public static Parser<OperatorCallExpression> OperatorCall(this Expression lhs) => 
-            from op in Operator()
-            from rhs in Expression()
-            select new OperatorCallExpression {Lhs = lhs, Name = op, Rhs = rhs};
+        public static GroupExpression FlattenLine(params Expression[] expressions)
+        {
+            var line = new GroupExpression { GroupType = GroupType.Line, Expressions = new List<Expression>() };
+            foreach (var expr in expressions)
+            {
+                var grp = expr as GroupExpression;
+                if (grp?.GroupType == GroupType.Line)
+                    line.Expressions.AddRange(grp.Expressions);
+                else
+                {
+                    line.Expressions.Add(expr);
+                }
+            }
+            return line;
+        }
 
-        public static Parser<MemberAccessExpression> MemberAccess(this Expression target) => 
+        public static Parser<GroupExpression> Line(this Expression expr) =>
+            from next in Expression()
+            select FlattenLine(expr, next);
+
+        public static Parser<MemberAccessExpression> MemberAccess(this Expression target) =>
             from dot in Period()
             from member in Id()
-            select new MemberAccessExpression {Target = target, Member = member};
+            select new MemberAccessExpression { Target = target, Member = member };
 
         public static Parser<Expression> PostfixExpression<T>(this Parser<T> parser) where T : Expression =>
             from expr in parser
-            from maybe in expr.Application()
+            from maybe in expr.Line()
                 .Or(expr.MemberAccess())
                 .IfSoContinueWith(just => just.AsParser().PostfixExpression())
             select maybe.Match(e => e, () => expr);
@@ -417,11 +432,11 @@ namespace Lilac.Parser
             from exprs in Lines()
             from nls2 in Newline().Star()
             from close in GroupClose(groupType)
-            select new GroupExpression {Expressions = exprs, GroupType = groupType};
+            select new GroupExpression { Expressions = exprs, GroupType = groupType };
 
         private static Parser<List<Expression>> Lines()
         {
-            return Expression().Or<Expression, Expression>(Definition()).StarSep(Newline().Plus());
+            return Expression().Or<Expression, Expression>(Definition()).Or(Error()).StarSep(Newline().Plus());
         }
 
         public static Parser<TopLevelExpression> TopLevel() =>
@@ -429,14 +444,14 @@ namespace Lilac.Parser
             from exprs in Lines()
             from nls in Newline().Star()
             from close in GroupClose(GroupType.TopLevel)
-            select new TopLevelExpression {Expressions = exprs, GroupType = GroupType.TopLevel};
+            select new TopLevelExpression { Expressions = exprs, GroupType = GroupType.TopLevel };
 
         public static Parser<BindingExpression> Let() =>
             from letId in ReservedWord("let")
             from id in Id()
             from eq in Equals()
             from expr in Expression().WithOptLeadingIf(Newline(), exp => exp is GroupExpression || exp is ListExpression)
-            select new BindingExpression {Name = id, ValueExpression = expr};
+            select new BindingExpression { Name = id, ValueExpression = expr };
 
         public static Parser<MutableBindingExpression> LetRef() =>
             from letId in ReservedWord("let")
@@ -448,7 +463,7 @@ namespace Lilac.Parser
 
         public static Parser<List<string>> ArgList() =>
             (from empty in EmptyGroup()
-                select new List<string>())
+             select new List<string>())
                 .Or<List<string>>(IdNotEquals().Plus("Expected argument list."));
 
         public static Parser<FunctionDefinitionExpression> FunctionDef() =>
@@ -489,7 +504,7 @@ namespace Lilac.Parser
             from a in (
                 from _ in Id("associates")
                 from a in Id("L").Or<string>(Id("R"))
-                select (Association) Enum.Parse(typeof(Association), a)).Opt()
+                select (Association)Enum.Parse(typeof(Association), a)).Opt()
             let association = a.GetValueOrDefault()
             from id in Id()
             from args in ArgList()
@@ -535,27 +550,65 @@ namespace Lilac.Parser
 
         public static Parser<MemberAssignmentExpression> MemberAssignment() =>
             from set in ReservedWord("set!")
-            from target in Expression()
-            let eqExpr = target as OperatorCallExpression
-            where eqExpr?.Name == "="
-            let lhs = eqExpr.Lhs as MemberAccessExpression
-            where lhs != null
-            select new MemberAssignmentExpression
-            {
-                Target = lhs.Target,
-                Member = lhs.Member,
-                ValueExpression = eqExpr.Rhs
-            };
+            from expr in Expression()
+            let line = expr as GroupExpression
+            where line?.GroupType == GroupType.Line
+            let memberAssign = GetMemberAssignment(line)
+            where memberAssign != null
+            select memberAssign;
 
-    public static Parser<AugmentedIdentifierExpression> AugmentedId() =>
-            from namespaces in (from id in Id() from dot in Period() select id).Plus()
-            from id in Id()
-            select new AugmentedIdentifierExpression { Namespaces = namespaces, Name = id };
+        public static MemberAssignmentExpression GetMemberAssignment(GroupExpression line)
+        {
+            var memberAssign = new MemberAssignmentExpression();
+            // Expression.Id = Expression.....
+            if (line.Expressions.Count < 3)
+                return null;
+            var memAccess = line.Expressions[0] as MemberAccessExpression;
+            if (memAccess != null)
+            {
+                memberAssign.Target = memAccess.Target;
+                memberAssign.Member = memAccess.Member;
+            }
+            else
+            {
+                var augId = line.Expressions[0] as AugmentedIdentifierExpression;
+                if (augId == null)
+                    return null;
+                memberAssign.Member = augId.Name;
+                if (augId.Namespaces.Count > 1)
+                {
+                    memberAssign.Target = new AugmentedIdentifierExpression
+                    {
+                        Name = augId.Namespaces.Last(),
+                        Namespaces = augId.Namespaces.Take(augId.Namespaces.Count - 1).ToList()
+                    };
+                }
+                else
+                {
+                    memberAssign.Target = new IdentifierExpression { Name = augId.Namespaces[0] };
+                }
+            }
+
+            var second = line.Expressions[1] as IdentifierExpression;
+            if (second?.Name != "=")
+                return null;
+            memberAssign.ValueExpression = line.Expressions.Count == 3 ? line.Expressions[2] : new GroupExpression
+            {
+                GroupType = GroupType.Line,
+                Expressions = line.Expressions.Skip(2).ToList()
+            };
+            return memberAssign;
+        }
+
+        public static Parser<AugmentedIdentifierExpression> AugmentedId() =>
+                from namespaces in (from id in Id() from dot in Period() select id).Plus()
+                from id in Id()
+                select new AugmentedIdentifierExpression { Namespaces = namespaces, Name = id };
 
         public static Parser<UsingExpression> Using() =>
             from usingId in ReservedWord("using")
             from namespaces in Id().PlusSep(Period())
-            select new UsingExpression {Namespaces = namespaces};
+            select new UsingExpression { Namespaces = namespaces };
 
         public static Parser<NamespaceExpression> Namespace() =>
             from nsId in ReservedWord("namespace")
@@ -579,7 +632,7 @@ namespace Lilac.Parser
                 select grp.Expressions
                 ).Or<List<Expression>>(Expression().StarSep(Newline()))
             from close in ListClose()
-            select new ListExpression {Expressions = exprs};
+            select new ListExpression { Expressions = exprs };
 
         public static Parser<LinkedListExpression> LinkedList() =>
             from quote in Backquote()
@@ -592,14 +645,14 @@ namespace Lilac.Parser
                 select grp.Expressions
                 ).Or<List<Expression>>(Expression().StarSep(Newline()))
             from close in GroupClose(GroupType.Parenthesized)
-            select new LinkedListExpression { Expressions = exprs};
+            select new LinkedListExpression { Expressions = exprs };
 
         public static Parser<LambdaExpression> Lambda() =>
             from lambda in ReservedWord("lambda")
             from args in ArgList()
             from eq in Equals()
             from expr in Expression().WithOptLeadingIf(Newline(), exp => exp is GroupExpression)
-            select new LambdaExpression {Parameters = args, Body = expr};
+            select new LambdaExpression { Parameters = args, Body = expr };
 
 
 
